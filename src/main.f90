@@ -1,0 +1,378 @@
+program rts_prototype
+    use, intrinsic :: iso_c_binding
+    use :: sdl2
+    use :: textures
+    use :: ui
+    use :: game_map
+    use :: game_camera
+    use :: game_player
+    use :: timer
+    implicit none
+
+    type :: map_settings
+        character(len=150) :: tileset = ""
+        character(len=150) :: music = ""
+    end type
+
+    type(c_ptr) :: window, renderer
+    type(sdl_event) :: ev
+    integer :: running, have_event, numkeys
+    type(c_ptr) :: kptr
+    integer(c_int8_t), pointer :: keys(:)
+    
+    type(texture_t) :: btn_tex, tex_track, tex_thumb
+    type(texture_t) :: tex_down, tex_up, tex_right
+    type(texture_t) :: crystal_red, crystal_blue, crystal_yellow, crystal_green
+    type(texture_t) :: menu_panel_tex, portrait_frame_tex, portrait_tex
+    
+    logical :: sound_on, music_on
+    type(sdl_rect) :: top_bar
+
+    logical :: menu_open = .false.
+    integer :: menu_selected = 0 
+    integer :: current_submenu = 0 
+    
+    logical :: flipping = .false.
+    integer :: flip_timer = 0
+    real :: flip_phase = 0.0
+    
+    character(len=20) :: menu_labels(0:3)
+    
+    character(len=50), allocatable :: map_folders(:)
+    integer :: num_maps
+    character(len=50)  :: current_folder
+    character(len=150) :: layout_path, collision_path, config_path, areas_path
+    type(map_settings) :: current_config
+
+    integer(c_int8_t) :: prev_keys(512)
+    prev_keys = 0_c_int8_t
+
+    menu_labels(0) = "Stato"
+    menu_labels(1) = "Magia"
+    menu_labels(2) = "Oggetti"
+    menu_labels(3) = "Cerca"
+
+    if (sdl_init(SDL_INIT_VIDEO) /= 0) stop "SDL_Init failed"
+    
+    window = sdl_create_window("Arabian Nights Remaster" // c_null_char, &
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN)
+        
+    renderer = sdl_create_renderer(window, -1, SDL_RENDERER_ACCELERATED + SDL_RENDERER_PRESENTVSYNC)
+
+    call texture_load(btn_tex, renderer, "assets/button.png")
+    call texture_load(tex_track, renderer, "assets/track.png")
+    call texture_load(tex_thumb, renderer, "assets/thumb.png")
+    
+    call texture_load(tex_down, renderer, "assets_game/characters/mapsprites/Shukran_down.png")
+    call texture_load(tex_up, renderer, "assets_game/characters/mapsprites/Shukran_up.png")
+    call texture_load(tex_right, renderer, "assets_game/characters/mapsprites/Shukran_right.png")
+    
+    call texture_load(crystal_red, renderer, "assets_game/menu/crystal/crystal.png")
+    call texture_load(crystal_blue, renderer, "assets_game/menu/crystal/crystal_2.png")
+    call texture_load(crystal_yellow, renderer, "assets_game/menu/crystal/crystal_4.png")
+    call texture_load(crystal_green, renderer, "assets_game/menu/crystal/crystal_3.png")
+    call texture_load(menu_panel_tex, renderer, "assets_game/menu/menu_panel.png")
+    call texture_load(portrait_frame_tex, renderer, "assets_game/menu/portrait_frame.png")
+    call texture_load(portrait_tex, renderer, "assets_game/portraits/shukran.png")
+    
+    call ui_init()
+    
+    call load_maplist("data/maps/maplist.txt", map_folders, num_maps)
+    if (num_maps == 0) stop "ОШИБКА: Список карт пуст!"
+    
+    current_folder = trim(map_folders(1))
+    
+    write(config_path, '(A,A,A)') "data/maps/", trim(current_folder), "/map.nml"
+    call load_map_config(trim(config_path), current_config)
+    
+    write(layout_path, '(A,A,A)') "data/maps/", trim(current_folder), "/layout.bin"
+    write(collision_path, '(A,A,A)') "data/maps/", trim(current_folder), "/collision.bin"
+    write(areas_path, '(A,A,A)') "data/maps/", trim(current_folder), "/areas.txt"
+    
+    print *, "=== ЗАГРУЗКА: ", trim(current_folder), " ==="
+    print *, "Тайлсет: ", trim(current_config%tileset)
+    
+    call map_load(trim(layout_path), renderer, trim(current_config%tileset), trim(collision_path), trim(areas_path))
+
+    call player_init(19, 21) 
+    call camera_init(px, py)
+
+    kptr = sdl_get_keyboard_state(numkeys)
+    call c_f_pointer(kptr, keys, [512])
+
+    sound_on = .true.
+    music_on = .false.
+    running = 1
+
+    top_bar%w = 2432
+    top_bar%h = 64
+    
+    call timer_init()
+
+    do while (running /= 0)
+        have_event = sdl_poll_event(ev)
+        do while (have_event /= 0)
+            if (ev%type_ == SDL_QUITEVENT) running = 0
+            have_event = sdl_poll_event(ev)
+        end do
+        
+        if (keys(42) /= 0) running = 0 ! Esc
+
+        if (timer_update()) then
+            if (current_submenu > 0) then
+                if (keys(23) /= 0 .and. prev_keys(23) == 0) then
+                    current_submenu = 0
+                    menu_open = .true.
+                end if
+            else
+                if ((keys(5) /= 0 .and. prev_keys(5) == 0) .or. (keys(8) /= 0 .and. prev_keys(8) == 0)) then
+                    if (.not. menu_open) then
+                        menu_open = .true.
+                    else
+                        if (menu_selected == 0) current_submenu = 1 
+                        menu_open = .false. 
+                    end if
+                end if
+
+                if (menu_open) then
+                    if (keys(83) /= 0 .and. prev_keys(83) == 0 .and. menu_selected /= 0) then
+                        menu_selected = 0; flipping = .true.; flip_timer = 0
+                    else if (keys(81) /= 0 .and. prev_keys(81) == 0 .and. menu_selected /= 1) then
+                        menu_selected = 1; flipping = .true.; flip_timer = 0
+                    else if (keys(80) /= 0 .and. prev_keys(80) == 0 .and. menu_selected /= 2) then
+                        menu_selected = 2; flipping = .true.; flip_timer = 0
+                    else if (keys(82) /= 0 .and. prev_keys(82) == 0 .and. menu_selected /= 3) then
+                        menu_selected = 3; flipping = .true.; flip_timer = 0
+                    end if
+                    
+                    if (keys(23) /= 0 .and. prev_keys(23) == 0) then
+                        menu_open = .false.
+                    end if
+
+                    if (flipping) then
+                        flip_timer = flip_timer + 1
+                        if (flip_timer >= 8) then
+                            flipping = .false.; flip_phase = 0.0
+                        else if (flip_timer < 4) then
+                            flip_phase = real(flip_timer) / 4.0
+                        else
+                            flip_phase = 2.0 - real(flip_timer) / 4.0
+                        end if
+                    end if
+                end if
+            end if
+            
+            if (.not. menu_open .and. current_submenu == 0) then
+                call player_update(keys)
+                if (moving) then
+                    call camera_update(px, py, direction)
+                else
+                    call camera_update(px, py, 0)
+                end if
+            end if
+            
+            prev_keys = keys
+        end if
+
+        call sdl_set_render_draw_color(renderer, uint8(210), uint8(180), uint8(140), uint8(255))
+        call sdl_render_clear(renderer)
+
+        call map_draw(renderer, cam_x, cam_y)
+        
+        top_bar%x = -cam_x
+        top_bar%y = -cam_y - 64
+        call sdl_set_render_draw_color(renderer, uint8(0), uint8(0), uint8(0), uint8(255))
+        call sdl_render_fill_rect(renderer, top_bar)
+
+        call player_draw(renderer, tex_down, tex_up, tex_right, cam_x, cam_y)
+
+        if (menu_open) then
+            call sdl_set_render_draw_blend_mode(renderer, SDL_BLENDMODE_BLEND)
+            
+            block
+                type(sdl_rect) :: overlay
+                overlay%x = 0; overlay%y = 0; overlay%w = 1280; overlay%h = 720
+                call sdl_set_render_draw_color(renderer, uint8(0), uint8(0), uint8(0), uint8(120))
+                call sdl_render_fill_rect(renderer, overlay)
+            end block
+
+            block
+                type(sdl_rect), target :: src, dst
+                integer :: cx, cy, off, i, px, py, dw, dx
+                integer :: flip_flag
+                type(texture_t) :: crystals(0:3)
+                
+                crystals(0) = crystal_red
+                crystals(1) = crystal_blue
+                crystals(2) = crystal_yellow
+                crystals(3) = crystal_green
+                
+                cx = 640; cy = 580; off = 34
+                src%x = 0; src%y = 0; src%w = 64; src%h = 64
+                
+                do i = 0, 3
+                    if (.not. crystals(i)%loaded) cycle 
+                    
+                    if (i == 0) then; px = cx; py = cy - off; end if
+                    if (i == 1) then; px = cx - off; py = cy; end if
+                    if (i == 2) then; px = cx + off; py = cy; end if
+                    if (i == 3) then; px = cx; py = cy + off; end if
+                    
+                    dst%w = 64; dst%h = 64
+                    dst%x = px - 32; dst%y = py - 32
+                    flip_flag = 0
+                    
+                    if (i == menu_selected .and. flipping) then
+                        dw = int(64.0 * (1.0 - flip_phase))
+                        dx = px - dw / 2
+                        dst%w = dw
+                        dst%x = dx
+                        
+                        if (flip_timer > 4) then
+                            flip_flag = SDL_FLIP_HORIZONTAL
+                        end if
+                        
+                        call sdl_render_copy_ex(renderer, crystals(i)%ptr, c_loc(src), dst, 0.0_c_double, c_null_ptr, flip_flag)
+                    else
+                        call sdl_render_copy(renderer, crystals(i)%ptr, c_loc(src), dst)
+                    end if
+                    
+                    if (i == menu_selected .and. .not. flipping) then
+                        call sdl_set_render_draw_color(renderer, uint8(255), uint8(215), uint8(0), uint8(255))
+                        call sdl_render_draw_line(renderer, px, py - 34, px + 34, py)
+                        call sdl_render_draw_line(renderer, px + 34, py, px, py + 34)
+                        call sdl_render_draw_line(renderer, px, py + 34, px - 34, py)
+                        call sdl_render_draw_line(renderer, px - 34, py, px, py - 34)
+                    end if
+                end do
+                
+                call ui_draw_text(renderer, trim(menu_labels(menu_selected)), cx + off + 40, cy - 10, 255, 255, 255)
+                
+            end block
+        end if
+
+        if (current_submenu > 0 .and. menu_panel_tex%loaded) then
+            call sdl_set_render_draw_blend_mode(renderer, SDL_BLENDMODE_BLEND)
+            
+            block
+                type(sdl_rect), target :: p_src, p_dst, frame_dst, portrait_dst
+                
+                call sdl_set_render_draw_color(renderer, uint8(0), uint8(0), uint8(0), uint8(100))
+                block
+                    type(sdl_rect) :: ov
+                    ov%x=0; ov%y=0; ov%w=1280; ov%h=720
+                    call sdl_render_fill_rect(renderer, ov)
+                end block
+                
+                p_src%x = 0; p_src%y = 0; p_src%w = 960; p_src%h = 640
+                p_dst%x = 160; p_dst%y = 40; p_dst%w = 960; p_dst%h = 640
+                call sdl_render_copy(renderer, menu_panel_tex%ptr, c_loc(p_src), p_dst)
+                
+                p_src%x = 0; p_src%y = 0; p_src%w = 204; p_src%h = 268
+                frame_dst%x = 350; frame_dst%y = 226; frame_dst%w = 204; frame_dst%h = 268
+                
+                p_src%x = 0; p_src%y = 0; p_src%w = 192; p_src%h = 256
+                portrait_dst%x = 350 + 6; portrait_dst%y = 226 + 6; portrait_dst%w = 192; portrait_dst%h = 256
+                
+                if (portrait_tex%loaded) then
+                    call sdl_render_copy(renderer, portrait_tex%ptr, c_loc(p_src), portrait_dst)
+                end if
+                
+                if (portrait_frame_tex%loaded) then
+                    p_src%x = 0; p_src%y = 0; p_src%w = 204; p_src%h = 268
+                    call sdl_render_copy(renderer, portrait_frame_tex%ptr, c_loc(p_src), frame_dst)
+                end if
+            end block
+        end if
+
+        if (ui_button(renderer, btn_tex, 1100, 10, 140, 40, "Меню")) print *, "Меню"
+        if (ui_button(renderer, btn_tex, 1100, 60, 140, 40, "Выход", 255, 100, 100, 255, 255, 255)) running = 0
+
+        call ui_draw_text(renderer, "Звук", 1000, 130, 255, 255, 255)
+        if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1100, 120, 80, 40, sound_on)) print *, "Звук: ", sound_on
+
+        call ui_draw_text(renderer, "Музыка", 1000, 190, 255, 255, 255)
+        if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1100, 180, 80, 40, music_on)) print *, "Музыка: ", music_on
+
+        call sdl_render_present(renderer)
+        call ui_update() 
+    end do
+
+    call sdl_destroy_renderer(renderer)
+    call sdl_destroy_window(window)
+    call sdl_quit()
+
+contains
+
+    subroutine load_maplist(filename, folders, count)
+        character(len=*), intent(in) :: filename
+        character(len=50), allocatable, intent(out) :: folders(:)
+        integer, intent(out) :: count
+        integer :: io, i
+        character(len=50) :: buffer
+        
+        count = 0
+        open(10, file=filename, status='old', iostat=io)
+        if (io /= 0) then
+            print *, "ОШИБКА: Не найден файл ", filename
+            stop
+        end if
+        
+        do
+            read(10, '(A)', iostat=io) buffer
+            if (io /= 0) exit
+            if (len_trim(buffer) > 0 .and. buffer(1:1) /= '#') count = count + 1
+        end do
+        rewind(10)
+        
+        allocate(folders(count))
+        do i = 1, count
+            read(10, '(A)') folders(i)
+            folders(i) = trim(adjustl(folders(i)))
+        end do
+        close(10)
+    end subroutine
+
+    subroutine load_map_config(filename, config)
+        character(len=*), intent(in) :: filename
+        type(map_settings), intent(out) :: config
+        integer :: io
+        character(len=200) :: line
+        
+        config%tileset = "assets_game/tilesets/tileset.png"
+        config%music = ""
+        
+        open(11, file=filename, status='old', iostat=io)
+        if (io /= 0) then
+            print *, "ВНИМАНИЕ: Не найден ", trim(filename), ". Используем тайлсет по умолчанию."
+            return
+        end if
+        
+        do
+            read(11, '(A)', iostat=io) line
+            if (io /= 0) exit
+            
+            if (index(line, 'tileset') > 0) then
+                call extract_string(line, config%tileset)
+            else if (index(line, 'music') > 0) then
+                call extract_string(line, config%music)
+            end if
+        end do
+        close(11)
+    end subroutine
+
+    subroutine extract_string(line, result_str)
+        character(len=*), intent(in) :: line
+        character(len=*), intent(out) :: result_str
+        integer :: p1, p2
+        
+        p1 = index(line, "'")
+        if (p1 > 0) then
+            p2 = index(line(p1+1:), "'")
+            if (p2 > 0) then
+                result_str = line(p1+1 : p1+p2-1)
+            end if
+        end if
+    end subroutine
+
+end program

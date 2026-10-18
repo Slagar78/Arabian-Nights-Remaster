@@ -1,0 +1,61 @@
+Arabian_Nights/
+│
+├── Makefile
+├── UI_GUIDE.txt
+├── схема.txt
+├── путь.txt
+│
+├── data/                  <-- ДАННЫЕ ИГРЫ
+│   └── maps/              <-- ВСЕ ЛОКАЦИИ
+│       ├── maplist.txt    <-- Список всех папок с картами (cairo, dungeon...)
+│       │
+│       ├── cairo/         <-- Папка города Каир
+│       │   ├── layout.bin     <-- Визуальная карта (бинарник)
+│       │   ├── collision.bin  <-- Коллизии (стены)
+│       │   └── map.nml        <-- Конфиг (какой тайлсет и музыка юзать)
+│       │
+│       └── dungeon/       <-- Папка подземелья
+│           ├── layout.bin
+│           ├── collision.bin
+│           └── map.nml
+│
+├── lib/                   <-- ДВИЖОК (Низкоуровневые модули)
+│   ├── sdl_bind.f90       <-- Привязки к C (SDL2)
+│   ├── textures.f90       <-- Загрузка картинок, 9-slice
+│   └── timer.f90          <-- Фиксированный шаг (60 FPS)
+│
+├── src/                   <-- КОД ИГРЫ (Геймплей)
+│   ├── ui.f90             <-- Кнопки, тумблеры, текст
+│   ├── map.f90            <-- Рендер карты, коллизии
+│   ├── camera.f90         <-- Камера
+│   ├── player.f90         <-- Шукран, движение, анимации
+│   └── main.f90           <-- Главный игровой цикл
+│
+├── assets/                <-- ТОЛЬКО ДЛЯ СТАНДАРТНОГО GUI
+│   ├── button.png         <-- Кнопки "Меню" и "Выход"
+│   ├── track.png          <-- Дорожка тумблера
+│   ├── thumb.png          <-- Кружок тумблера
+│   └── fonts/             <-- Сюда можно положить .ttf шрифт
+│
+├── assets_game/           <-- ТОЛЬКО ДЛЯ ИГРЫ
+│   ├── characters/
+│   │   └── mapsprites/    <-- Спрайты передвижения по карте
+│   │       ├── Shukran_down.png
+│   │       ├── Shukran_right.png
+│   │       └── Shukran_up.png
+│   ├── portraits/         <-- HD-портреты для диалогов
+│   ├── tilesets/          <-- ОБЩИЕ ТАЙЛСЕТЫ (desert.png, dungeon.png)
+│   ├── music/             <-- Музыка (cairo.ogg, dungeon.ogg)
+│   ├── menu/              <-- ВСЁ ДЛЯ ИГРОВОГО МЕНЮ
+│   │   ├── menu_panel.png <-- Тот самый пергамент 960x640
+│   │   ├── portrait_frame.png <-- Рамка для портрета
+│   │   └── crystal/       <-- Папка с кристаллами
+│   │       ├── crystal.png   (Красный)
+│   │       ├── crystal_2.png (Синий)
+│   │       ├── crystal_3.png (Зелёный)
+│   │       └── crystal_4.png (Жёлтый)
+│   └── others/
+│
+└── editor/                <-- Твои редакторы/утилиты
+    ├── map-creator.html   <-- Создание карты (нарезка PNG -> layout.bin + tileset.png)
+    └── map-editor.html    <-- Редактирование (расстановка коллизий -> collision.bin)

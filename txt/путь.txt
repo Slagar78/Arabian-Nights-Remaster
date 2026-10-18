@@ -1,0 +1,1 @@
+cd /c/msys64/home/Artur/projects/Arabian_Nights_Git

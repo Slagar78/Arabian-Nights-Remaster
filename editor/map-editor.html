@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Arabian Nights - Collision Editor</title>
+    <style>
+        :root {
+            --bg: #121212; --panel: #1e1e1e; --border: #333;
+            --text: #ddd; --accent: #4CAF50;
+        }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .header {
+            background: var(--panel); border: 1px solid var(--border);
+            padding: 15px; border-radius: 8px;
+            display: flex; gap: 15px; align-items: center; flex-wrap: wrap;
+        }
+        .btn {
+            background: #333; color: #fff; border: 1px solid #555;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer;
+            font-weight: bold; transition: 0.2s;
+        }
+        .btn:hover { background: #444; }
+        .btn.primary { background: var(--accent); border-color: var(--accent); }
+        .btn.danger { background: #d32f2f; border-color: #d32f2f; }
+        
+        .workspace { display: flex; gap: 20px; }
+        .panel {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 8px; padding: 15px; flex: 1;
+            overflow: auto; max-height: 85vh;
+        }
+        canvas { display: block; background: #000; border: 1px solid #555; cursor: crosshair; }
+        input[type="file"] { display: none; }
+        .status { font-weight: bold; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <label for="mapBinInput" class="btn">1. Загрузить map.bin</label>
+        <input type="file" id="mapBinInput" accept=".bin">
+        
+        <label for="tilesetInput" class="btn">2. Загрузить tileset.png</label>
+        <input type="file" id="tilesetInput" accept="image/png">
+        
+        <span class="status" id="status">Ждем файлы...</span>
+        
+        <button class="btn danger" onclick="clearCollisions()">🗑️ Очистить коллизии</button>
+        <button class="btn primary" onclick="downloadCollisions()">💾 Скачать collision.bin</button>
+    </div>
+
+    <div class="workspace">
+        <div class="panel" style="text-align: center;">
+            <h3>Клик ЛКМ: Поставить стену (-1) | Клик ПКМ: Стереть (1)</h3>
+            <canvas id="editorCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const TILE_SIZE = 64;
+        const COLS = 38; // Из твоего map.f90
+        const ROWS = 42; // Из твоего map.f90
+
+        let mapGrid = [];      // ID тайлов (из map.bin)
+        let collisionGrid = []; // Коллизии (-1 или 1)
+        let tilesetImg = new Image();
+        let isTilesetLoaded = false;
+        let isMapLoaded = false;
+
+        const canvas = document.getElementById('editorCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+
+        // Настраиваем размеры холста
+        canvas.width = COLS * TILE_SIZE;
+        canvas.height = ROWS * TILE_SIZE;
+
+        // Инициализация массива коллизий (по умолчанию всё проходимо - 1)
+        function initCollisions() {
+            collisionGrid = Array(ROWS).fill().map(() => Array(COLS).fill(1));
+        }
+
+        // --- ЗАГРУЗКА КАРТЫ (BIN) ---
+        document.getElementById('mapBinInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const buffer = event.target.result;
+                const dataView = new DataView(buffer);
+                
+                mapGrid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                let offset = 0;
+
+                // Читаем Uint16 (2 байта на тайл)
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (offset < buffer.byteLength) {
+                            mapGrid[r][c] = dataView.getUint16(offset, true);
+                            offset += 2;
+                        }
+                    }
+                }
+                isMapLoaded = true;
+                initCollisions();
+                statusEl.innerText = "Карта загружена!";
+                render();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // --- ЗАГРУЗКА ТАЙЛСЕТА ---
+        document.getElementById('tilesetInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                tilesetImg.onload = () => {
+                    isTilesetLoaded = true;
+                    statusEl.innerText = "Тайлсет загружен!";
+                    render();
+                };
+                tilesetImg.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // --- ОТРИСОВКА ---
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!isMapLoaded) return;
+
+            const tilesPerRow = Math.floor(tilesetImg.width / TILE_SIZE) || 8;
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const x = c * TILE_SIZE;
+                    const y = r * TILE_SIZE;
+                    const tileId = mapGrid[r][c];
+
+                    // 1. Рисуем визуальный тайл (если есть тайлсет)
+                    if (isTilesetLoaded && tileId > 0) {
+                        const t = tileId - 1; // В файле тайлы начинаются с 1
+                        const srcX = (t % tilesPerRow) * TILE_SIZE;
+                        const srcY = Math.floor(t / tilesPerRow) * TILE_SIZE;
+                        ctx.drawImage(tilesetImg, srcX, srcY, TILE_SIZE, TILE_SIZE, x, y, TILE_SIZE, TILE_SIZE);
+                    } else {
+                        // Если тайлсета нет, рисуем заглушку
+                        ctx.fillStyle = "#222";
+                        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    }
+
+                    // 2. Рисуем слой коллизий поверх
+                    if (collisionGrid[r][c] === -1) {
+                        // Стена: полупрозрачный красный
+                        ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
+                        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                        // Крестик
+                        ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(x + 10, y + 10); ctx.lineTo(x + TILE_SIZE - 10, y + TILE_SIZE - 10);
+                        ctx.moveTo(x + TILE_SIZE - 10, y + 10); ctx.lineTo(x + 10, y + TILE_SIZE - 10);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // --- РИСОВАНИЕ КОЛЛИЗИЙ МЫШКОЙ ---
+        let isDrawing = false;
+        let drawMode = -1; // -1 = стена, 1 = трава
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!isMapLoaded) return;
+            isDrawing = true;
+            drawMode = (e.button === 2) ? 1 : -1; // ПКМ стирает, ЛКМ ставит стену
+            paint(e);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) paint(e);
+        });
+
+        window.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        function paint(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const c = Math.floor(x / TILE_SIZE);
+            const r = Math.floor(y / TILE_SIZE);
+
+            if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                if (collisionGrid[r][c] !== drawMode) {
+                    collisionGrid[r][c] = drawMode;
+                    render(); // Перерисовываем (в идеале нужно перерисовывать только 1 тайл, но для 38x42 это ок)
+                }
+            }
+        }
+
+        function clearCollisions() {
+            initCollisions();
+            render();
+            statusEl.innerText = "Коллизии очищены!";
+        }
+
+        // --- СОХРАНЕНИЕ COLLISION.BIN ---
+        function downloadCollisions() {
+            if (!isMapLoaded) return alert("Сначала загрузи карту!");
+
+            // Каждый тайл занимает 1 байт (Int8: от -128 до 127)
+            const buffer = new ArrayBuffer(ROWS * COLS);
+            const dataView = new DataView(buffer);
+            
+            let offset = 0;
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    // Записываем Int8 (-1 или 1)
+                    dataView.setInt8(offset, collisionGrid[r][c]);
+                    offset += 1;
+                }
+            }
+
+            const blob = new Blob([buffer], { type: 'application/octet-stream' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'collision.bin';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            
+            statusEl.innerText = "collision.bin сохранен!";
+        }
+
+        initCollisions();
+    </script>
+</body>
+</html>

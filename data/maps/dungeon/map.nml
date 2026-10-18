@@ -1,0 +1,4 @@
+&MAP_CONFIG
+  tileset = 'assets_game/tilesets/desert.png',
+  music = 'assets_game/music/cairo.ogg'
+/
