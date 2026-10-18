@@ -50,6 +50,25 @@ contains
                 txt_tex = sdl_create_texture_from_surface(renderer, txt_surf)
                 call sdl_free_surface(txt_surf)
                 call sdl_query_texture(txt_tex, c_null_ptr, c_null_ptr, tw, th)
+                ! 1. Рисуем ТЕНЬ (черная, полупрозрачная, со сдвигом +2 пикселя)
+                block
+                    type(sdl_color) :: shadow_col
+                    type(c_ptr) :: shadow_surf, shadow_tex
+                    type(sdl_rect) :: shadow_dst
+                    
+                    shadow_col%r = uint8(0); shadow_col%g = uint8(0); shadow_col%b = uint8(0); shadow_col%a = uint8(180)
+                    shadow_surf = ttf_render_utf8_blended(default_font, trim(text) // c_null_char, shadow_col)
+                    
+                    if (c_associated(shadow_surf)) then
+                        shadow_tex = sdl_create_texture_from_surface(renderer, shadow_surf)
+                        call sdl_free_surface(shadow_surf)
+                        shadow_dst%x = x + 2; shadow_dst%y = y + 2; shadow_dst%w = tw; shadow_dst%h = th
+                        call sdl_render_copy(renderer, shadow_tex, c_null_ptr, shadow_dst)
+                        call sdl_destroy_texture(shadow_tex)
+                    end if
+                end block
+
+                ! 2. Рисуем сам ТЕКСТ (поверх тени)
                 dst%x = x; dst%y = y; dst%w = tw; dst%h = th
                 call sdl_render_copy(renderer, txt_tex, c_null_ptr, dst)
                 call sdl_destroy_texture(txt_tex)
