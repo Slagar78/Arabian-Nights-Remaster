@@ -10,8 +10,16 @@ module ui
 contains
     subroutine ui_init()
         if (ttf_init() /= 0) print *, "ОШИБКА: TTF_Init failed"
-        default_font = ttf_open_font("C:/Windows/Fonts/arial.ttf" // c_null_char, 20)
-        if (.not. c_associated(default_font)) default_font = ttf_open_font("C:/Windows/Fonts/segoeui.ttf" // c_null_char, 20)
+        
+        ! Подключаем наш сказочный шрифт. 
+        ! 24 — это размер шрифта (подбери под свои кнопки, если будет мелко)
+        default_font = ttf_open_font("assets/fonts/cleopatra.ttf" // c_null_char, 24)
+        
+        ! Если шрифт вдруг не найден, игра не упадет, а возьмет системный
+        if (.not. c_associated(default_font)) then
+            print *, "ВНИМАНИЕ: Шрифт не найден! Грузим Arial."
+            default_font = ttf_open_font("C:/Windows/Fonts/arial.ttf" // c_null_char, 20)
+        end if
     end subroutine
 
     ! Вызываем в конце каждого кадра, чтобы сбросить защелку
