@@ -232,9 +232,9 @@ program rts_prototype
                             flip_flag = SDL_FLIP_HORIZONTAL
                         end if
                         
-                        call sdl_render_copy_ex(renderer, crystals(i)%ptr, c_loc(src), dst, 0.0_c_double, c_null_ptr, flip_flag)
+                        call texture_draw_part_ex(crystals(i), renderer, src, dst, flip_flag)
                     else
-                        call sdl_render_copy(renderer, crystals(i)%ptr, c_loc(src), dst)
+                        call texture_draw_part(crystals(i), renderer, src, dst)
                     end if
                     
                     if (i == menu_selected .and. .not. flipping) then
@@ -266,7 +266,7 @@ program rts_prototype
                 
                 p_src%x = 0; p_src%y = 0; p_src%w = 960; p_src%h = 640
                 p_dst%x = 160; p_dst%y = 40; p_dst%w = 960; p_dst%h = 640
-                call sdl_render_copy(renderer, menu_panel_tex%ptr, c_loc(p_src), p_dst)
+                call texture_draw_part(menu_panel_tex, renderer, p_src, p_dst)
                 
                 p_src%x = 0; p_src%y = 0; p_src%w = 204; p_src%h = 268
                 frame_dst%x = 350; frame_dst%y = 226; frame_dst%w = 204; frame_dst%h = 268
@@ -275,12 +275,12 @@ program rts_prototype
                 portrait_dst%x = 350 + 6; portrait_dst%y = 226 + 6; portrait_dst%w = 192; portrait_dst%h = 256
                 
                 if (portrait_tex%loaded) then
-                    call sdl_render_copy(renderer, portrait_tex%ptr, c_loc(p_src), portrait_dst)
+                    call texture_draw_part(portrait_tex, renderer, p_src, portrait_dst)
                 end if
                 
                 if (portrait_frame_tex%loaded) then
                     p_src%x = 0; p_src%y = 0; p_src%w = 204; p_src%h = 268
-                    call sdl_render_copy(renderer, portrait_frame_tex%ptr, c_loc(p_src), frame_dst)
+                    call texture_draw_part(portrait_frame_tex, renderer, p_src, frame_dst)
                 end if
             end block
         end if

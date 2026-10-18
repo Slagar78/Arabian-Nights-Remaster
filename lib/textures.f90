@@ -71,5 +71,54 @@ contains
         
         src%x = cw - b; src%y = ch - b; src%w = b; src%h = b; dst%x = x + w - b; dst%y = y + h - b; dst%w = b; dst%h = b
         call sdl_render_copy(renderer, tex%ptr, c_loc(src), dst)
+
+        ! 🔧 ФИКС: сбрасываем ColorMod, чтобы следующие отрисовки этой же
+        ! текстуры (без явного tint) не унаследовали последний цвет
+        call sdl_set_texture_color_mod(tex%ptr, uint8(255), uint8(255), uint8(255))
     end subroutine
+
+    ! ======================================================================
+    ! НОВЫЕ ОБЁРТКИ (слой защиты №2: перед рисованием ставим нейтральный
+    ! ColorMod, чтобы никогда не унаследовать чужой tint)
+    ! ======================================================================
+
+    ! Нарисовать всю текстуру целиком (src = NULL).
+    ! Для портретов, кнопок, рамок, thumb — где не нужна вырезка из атласа.
+    subroutine texture_draw(tex, renderer, dst)
+        type(texture_t), intent(in) :: tex
+        type(c_ptr), intent(in) :: renderer
+        type(sdl_rect), intent(in) :: dst
+
+        if (.not. tex%loaded) return
+        call sdl_set_texture_color_mod(tex%ptr, uint8(255), uint8(255), uint8(255))
+        call sdl_render_copy(renderer, tex%ptr, c_null_ptr, dst)
+    end subroutine
+
+    ! Нарисовать вырезку из атласа (src).
+    ! Для тайлов карты, спрайтов, кристаллов — где нужна часть PNG.
+    subroutine texture_draw_part(tex, renderer, src, dst)
+        type(texture_t), intent(in) :: tex
+        type(c_ptr), intent(in) :: renderer
+        type(sdl_rect), target, intent(in) :: src
+        type(sdl_rect), intent(in) :: dst
+
+        if (.not. tex%loaded) return
+        call sdl_set_texture_color_mod(tex%ptr, uint8(255), uint8(255), uint8(255))
+        call sdl_render_copy(renderer, tex%ptr, c_loc(src), dst)
+    end subroutine
+
+    ! Нарисовать вырезку с отражением по горизонтали.
+    ! Для симметричных спрайтов (Шукран идёт влево) и flip-анимаций.
+    subroutine texture_draw_part_ex(tex, renderer, src, dst, flip)
+        type(texture_t), intent(in) :: tex
+        type(c_ptr), intent(in) :: renderer
+        type(sdl_rect), target, intent(in) :: src
+        type(sdl_rect), intent(in) :: dst
+        integer, intent(in) :: flip
+
+        if (.not. tex%loaded) return
+        call sdl_set_texture_color_mod(tex%ptr, uint8(255), uint8(255), uint8(255))
+        call sdl_render_copy_ex(renderer, tex%ptr, c_loc(src), dst, 0.0_c_double, c_null_ptr, flip)
+    end subroutine
+
 end module textures

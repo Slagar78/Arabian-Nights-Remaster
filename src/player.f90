@@ -2,10 +2,9 @@ module game_player
     use, intrinsic :: iso_c_binding
     use :: sdl2
     use :: textures
-    use :: game_map ! Подключаем game_map для доступа к is_solid
+    use :: game_map
     implicit none
 
-    ! ВНИМАНИЕ: TILE_SIZE, MAP_COLS, MAP_ROWS теперь берутся из game_map
     integer, parameter :: PLAYER_SPEED = 6 
 
     integer :: tile_x = 19, tile_y = 21
@@ -91,7 +90,6 @@ contains
                 return
             end if
 
-            ! ПРОВЕРКА КОЛЛИЗИИ
             if (is_solid(new_x + 1, new_y + 1)) then
                 moving = .false.
                 anim_frame = 0
@@ -143,7 +141,6 @@ contains
             return
         end if
 
-        ! ПРОВЕРКА КОЛЛИЗИИ
         if (is_solid(new_x + 1, new_y + 1)) then
             moving = .false.
             return
@@ -185,10 +182,10 @@ contains
         dst_rect%w = 64
         dst_rect%h = 128
 
-        if (flip_flag == SDL_FLIP_HORIZONTAL) then
-            call sdl_render_copy_ex(renderer, current_tex%ptr, c_loc(src_rect), dst_rect, 0.0_c_double, c_null_ptr, flip_flag)
+        if (flip_flag /= 0) then
+            call texture_draw_part_ex(current_tex, renderer, src_rect, dst_rect, flip_flag)
         else
-            call sdl_render_copy(renderer, current_tex%ptr, c_loc(src_rect), dst_rect)
+            call texture_draw_part(current_tex, renderer, src_rect, dst_rect)
         end if
     end subroutine
 end module game_player

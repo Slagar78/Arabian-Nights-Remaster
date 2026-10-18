@@ -24,7 +24,7 @@ run: app.exe
 	cp -f /c/msys64/ucrt64/bin/SDL2.dll . 2>/dev/null || true
 	cp -f /c/msys64/ucrt64/bin/SDL2_image.dll . 2>/dev/null || true
 	cp -f /c/msys64/ucrt64/bin/SDL2_ttf.dll . 2>/dev/null || true
-	./app.exe
+	cmd //c "chcp 65001 >nul & app.exe"
 
 clean:
 	rm -f lib/*.o lib/*.mod src/*.o src/*.mod *.mod *.exe SDL2*.dll

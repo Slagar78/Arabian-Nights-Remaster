@@ -156,7 +156,7 @@ contains
         dst_thumb%y = thumb_y
         dst_thumb%w = tex_thumb%w
         dst_thumb%h = tex_thumb%h
-        call sdl_render_copy(renderer, tex_thumb%ptr, c_null_ptr, dst_thumb)
+        call texture_draw(tex_thumb, renderer, dst_thumb)
     end function
 
 end module ui
