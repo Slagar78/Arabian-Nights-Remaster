@@ -30,8 +30,13 @@ program rts_prototype
 
     logical :: menu_open = .false.
     logical :: pause_menu_open = .false.
+    logical :: pending_menu_request = .false.
     integer :: menu_selected = 0 
     integer :: current_submenu = 0 
+    integer :: menu_delay = 0
+    ! ДЛЯ КАМЕРЫ:
+    integer :: prev_cam_x = 0
+    integer :: prev_cam_y = 0
     
     logical :: flipping = .false.
     integer :: flip_timer = 0
@@ -134,9 +139,15 @@ program rts_prototype
                 end if
             else
                 if ((keys(5) /= 0 .and. prev_keys(5) == 0) .or. (keys(8) /= 0 .and. prev_keys(8) == 0)) then
-                    if (.not. menu_open) then
-                        menu_open = .true.
-                    else
+                    if (.not. menu_open .and. current_submenu == 0 .and. .not. pause_menu_open) then
+                        if (moving) then
+                            ! Если Шукран идет, запоминаем запрос и ждем остановки
+                            pending_menu_request = .true.
+                        else
+                            ! Если стоит на месте, открываем сразу
+                            menu_open = .true.
+                        end if
+                    else if (menu_open) then
                         if (menu_selected == 0) current_submenu = 1 
                         menu_open = .false. 
                     end if
@@ -172,10 +183,31 @@ program rts_prototype
             
             if (.not. menu_open .and. current_submenu == 0 .and. .not. pause_menu_open) then
                 call player_update(keys)
+                
+                ! Запоминаем позицию камеры ДО её обновления
+                prev_cam_x = cam_x
+                prev_cam_y = cam_y
+
                 if (moving) then
                     call camera_update(px, py, direction)
                 else
                     call camera_update(px, py, 0)
+                end if
+
+                ! --- БЛОК: Отложенное открытие меню (ждем и игрока, и камеру) ---
+                if (pending_menu_request) then
+                    ! Проверяем: игрок стоит И камера больше не двигается (cam_x не изменился)
+                    if (.not. moving .and. cam_x == prev_cam_x .and. cam_y == prev_cam_y) then
+                        menu_delay = menu_delay + 1
+                        if (menu_delay >= 3) then
+                            pending_menu_request = .false.
+                            menu_delay = 0
+                            menu_open = .true.
+                        end if
+                    else
+                        ! Если игрок или камера все еще движутся, сбрасываем таймер
+                        menu_delay = 0
+                    end if
                 end if
             end if
             
