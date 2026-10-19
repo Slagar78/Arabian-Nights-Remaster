@@ -29,6 +29,7 @@ program rts_prototype
     type(sdl_rect) :: top_bar
 
     logical :: menu_open = .false.
+    logical :: pause_menu_open = .false.
     integer :: menu_selected = 0 
     integer :: current_submenu = 0 
     
@@ -116,9 +117,16 @@ program rts_prototype
             have_event = sdl_poll_event(ev)
         end do
         
-        if (keys(42) /= 0) running = 0 ! Esc
-
         if (timer_update()) then
+            ! Открытие/закрытие меню паузы по Esc
+            if (keys(42) /= 0 .and. prev_keys(42) == 0) then
+                pause_menu_open = .not. pause_menu_open
+                if (pause_menu_open) then
+                    menu_open = .false.
+                    current_submenu = 0
+                end if
+            end if
+
             if (current_submenu > 0) then
                 if (keys(23) /= 0 .and. prev_keys(23) == 0) then
                     current_submenu = 0
@@ -162,7 +170,7 @@ program rts_prototype
                 end if
             end if
             
-            if (.not. menu_open .and. current_submenu == 0) then
+            if (.not. menu_open .and. current_submenu == 0 .and. .not. pause_menu_open) then
                 call player_update(keys)
                 if (moving) then
                     call camera_update(px, py, direction)
@@ -298,14 +306,41 @@ program rts_prototype
             end block
         end if
 
-        if (ui_button(renderer, btn_tex, 1100, 10, 140, 40, "Меню")) print *, "Меню"
-        if (ui_button(renderer, btn_tex, 1100, 60, 140, 40, "Выход", 255, 100, 100, 255, 255, 255)) running = 0
+        ! Рисуем интерфейс ТОЛЬКО если меню паузы закрыто
+        if (.not. pause_menu_open) then
+            
+            ! Переводим на итальянский и сдвигаем чуть левее
+            call ui_draw_text(renderer, "Audio", 970, 30, 255, 255, 255)
+            if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1150, 20, 80, 40, sound_on)) print *, "Audio: ", sound_on
 
-        call ui_draw_text(renderer, "Звук", 1000, 130, 255, 255, 255)
-        if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1100, 120, 80, 40, sound_on)) print *, "Звук: ", sound_on
+            call ui_draw_text(renderer, "Musica", 970, 90, 255, 255, 255)
+            if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1150, 80, 80, 40, music_on)) print *, "Musica: ", music_on
+            
+        end if
 
-        call ui_draw_text(renderer, "Музыка", 1000, 190, 255, 255, 255)
-        if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1100, 180, 80, 40, music_on)) print *, "Музыка: ", music_on
+         ! --- МЕНЮ ПАУЗЫ (ESC) ---
+        if (pause_menu_open) then
+            call sdl_set_render_draw_blend_mode(renderer, SDL_BLENDMODE_BLEND)
+            
+            ! Черный затемняющий экран
+            block
+                type(sdl_rect) :: ov
+                ov%x = 0; ov%y = 0; ov%w = 1280; ov%h = 720
+                call sdl_set_render_draw_color(renderer, uint8(0), uint8(0), uint8(0), uint8(220))
+                call sdl_render_fill_rect(renderer, ov)
+            end block
+
+            ! Кнопка "Riprendi" (светло-зеленая)
+            if (ui_button(renderer, btn_tex, 540, 280, 200, 50, "Riprendi", 150, 255, 150, 0, 0, 0)) then
+                pause_menu_open = .false.
+            end if
+
+            ! Кнопка "Esci" (красная)
+            if (ui_button(renderer, btn_tex, 540, 360, 200, 50, "Esci", 255, 100, 100, 255, 255, 255)) then
+                running = 0
+            end if
+        end if
+        ! -------------------------
 
         call sdl_render_present(renderer)
         call ui_update() 
