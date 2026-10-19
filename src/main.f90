@@ -207,8 +207,11 @@ program rts_prototype
                 crystals(2) = crystal_yellow
                 crystals(3) = crystal_green
                 
-                cx = 640; cy = 580; off = 34
-                src%x = 0; src%y = 0; src%w = 64; src%h = 64
+                ! 1. Увеличили off (отступ), чтобы 108x108 ромбы не слипались
+                cx = 640; cy = 580; off = 56
+                
+                ! 2. Вырезаем из текстуры квадрат 108x108
+                src%x = 0; src%y = 0; src%w = 108; src%h = 108
                 
                 do i = 0, 3
                     if (.not. crystals(i)%loaded) cycle 
@@ -218,12 +221,16 @@ program rts_prototype
                     if (i == 2) then; px = cx + off; py = cy; end if
                     if (i == 3) then; px = cx; py = cy + off; end if
                     
-                    dst%w = 64; dst%h = 64
-                    dst%x = px - 32; dst%y = py - 32
+                    ! 3. Размер отрисовки тоже 108x108
+                    dst%w = 108; dst%h = 108
+                    
+                    ! 4. Центрируем (108 / 2 = 54)
+                    dst%x = px - 54; dst%y = py - 54
                     flip_flag = 0
                     
                     if (i == menu_selected .and. flipping) then
-                        dw = int(64.0 * (1.0 - flip_phase))
+                        ! 5. Меняем 64.0 на 108.0 для анимации переворота
+                        dw = int(108.0 * (1.0 - flip_phase))
                         dx = px - dw / 2
                         dst%w = dw
                         dst%x = dx
@@ -238,15 +245,16 @@ program rts_prototype
                     end if
                     
                     if (i == menu_selected .and. .not. flipping) then
-                        call sdl_set_render_draw_color(renderer, uint8(255), uint8(215), uint8(0), uint8(255))
-                        call sdl_render_draw_line(renderer, px, py - 34, px + 34, py)
-                        call sdl_render_draw_line(renderer, px + 34, py, px, py + 34)
-                        call sdl_render_draw_line(renderer, px, py + 34, px - 34, py)
-                        call sdl_render_draw_line(renderer, px - 34, py, px, py - 34)
+                        call sdl_set_render_draw_color(renderer, uint8(255), uint8(215), 0_c_int8_t, 255_c_int8_t)
+                        ! 6. Увеличиваем желтую рамку под размер 108 (54 вместо 34)
+                        call sdl_render_draw_line(renderer, px, py - 54, px + 54, py)
+                        call sdl_render_draw_line(renderer, px + 54, py, px, py + 54)
+                        call sdl_render_draw_line(renderer, px, py + 54, px - 54, py)
+                        call sdl_render_draw_line(renderer, px - 54, py, px, py - 54)
                     end if
                 end do
                 
-                call ui_draw_text(renderer, trim(menu_labels(menu_selected)), cx + off + 40, cy - 10, 255, 255, 255)
+                call ui_draw_text(renderer, trim(menu_labels(menu_selected)), cx + off + 100, cy - 10, 255, 255, 255)
                 
             end block
         end if
@@ -268,20 +276,25 @@ program rts_prototype
                 p_dst%x = 160; p_dst%y = 40; p_dst%w = 960; p_dst%h = 640
                 call texture_draw_part(menu_panel_tex, renderer, p_src, p_dst)
                 
-                p_src%x = 0; p_src%y = 0; p_src%w = 204; p_src%h = 268
-                frame_dst%x = 350; frame_dst%y = 226; frame_dst%w = 204; frame_dst%h = 268
+                ! 1. Координаты рамки
+                p_src%x = 0; p_src%y = 0; p_src%w = 200; p_src%h = 256
+                frame_dst%x = 350; frame_dst%y = 226; frame_dst%w = 200; frame_dst%h = 256
                 
+                ! 2. Координаты портрета (сдвиг по X на 4 пикселя: 350 + 4 = 354)
                 p_src%x = 0; p_src%y = 0; p_src%w = 192; p_src%h = 256
-                portrait_dst%x = 350 + 6; portrait_dst%y = 226 + 6; portrait_dst%w = 192; portrait_dst%h = 256
+                portrait_dst%x = 354; portrait_dst%y = 226; portrait_dst%w = 192; portrait_dst%h = 256
                 
+                ! 3. Рисуем портрет
                 if (portrait_tex%loaded) then
                     call texture_draw_part(portrait_tex, renderer, p_src, portrait_dst)
                 end if
                 
+                ! 4. Рисуем рамку ПОВЕРХ портрета
                 if (portrait_frame_tex%loaded) then
-                    p_src%x = 0; p_src%y = 0; p_src%w = 204; p_src%h = 268
+                    p_src%x = 0; p_src%y = 0; p_src%w = 200; p_src%h = 256
                     call texture_draw_part(portrait_frame_tex, renderer, p_src, frame_dst)
                 end if
+
             end block
         end if
 
