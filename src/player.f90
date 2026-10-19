@@ -208,25 +208,22 @@ contains
             type(sdl_rect) :: sh
             integer :: cx, cy
 
-            ! Центр (X) всегда под ногами
             cx = dst_rect%x + 32
-            ! Низ спрайта (ноги)
-            cy = dst_rect%y + 116
+            ! ВОТ ЗДЕСЬ ИСПРАВЛЕНИЕ: возвращаем 112, чтобы тень была под ногами
+            cy = dst_rect%y + 112 
 
             if (direction == 2) then
                 ! ====== СПИНА (ИДЕТ ВВЕРХ) ======
-                ! Плавный вытянутый эллипс, уходящий вниз
-                sh%w = 16; sh%x = cx - 8;  sh%y = cy + 6;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
-                sh%w = 24; sh%x = cx - 12; sh%y = cy + 8;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
-                sh%w = 32; sh%x = cx - 16; sh%y = cy + 10; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
-                sh%w = 36; sh%x = cx - 18; sh%y = cy + 12; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
-                sh%w = 36; sh%x = cx - 18; sh%y = cy + 14; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
-                sh%w = 32; sh%x = cx - 16; sh%y = cy + 16; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
-                sh%w = 24; sh%x = cx - 12; sh%y = cy + 18; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
-                sh%w = 16; sh%x = cx - 8;  sh%y = cy + 20; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 16; sh%x = cx - 8;  sh%y = cy + 2;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 24; sh%x = cx - 12; sh%y = cy + 4;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 32; sh%x = cx - 16; sh%y = cy + 6;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 36; sh%x = cx - 18; sh%y = cy + 8;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 36; sh%x = cx - 18; sh%y = cy + 10; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 32; sh%x = cx - 16; sh%y = cy + 12; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 24; sh%x = cx - 12; sh%y = cy + 14; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 16; sh%x = cx - 8;  sh%y = cy + 16; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
             else
                 ! ====== ВНИЗ, ВЛЕВО, ВПРАВО ======
-                ! Обычный овал прямо под ногами
                 sh%w = 16; sh%x = cx - 8;  sh%y = cy - 2; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
                 sh%w = 24; sh%x = cx - 12; sh%y = cy;     sh%h = 2; call sdl_render_fill_rect(renderer, sh)
                 sh%w = 32; sh%x = cx - 16; sh%y = cy + 2; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
