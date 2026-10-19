@@ -16,6 +16,10 @@ module game_player
     
     integer :: anim_frame = 0
     integer :: anim_timer = 0
+    
+    integer :: idle_frame = 0
+    integer :: idle_timer = 0
+    
     logical :: moving = .false.
     
     integer :: px = 0, py = 0
@@ -51,11 +55,17 @@ contains
                     anim_timer = 0
                 end if
             end if
+            
         else
             call start_move(keys)
             if (target_tile_x == -1) then
-                anim_frame = 0
-                anim_timer = 0
+                ! --- ЛОГИКА ПОКОЯ (IDLE) ---
+                idle_timer = idle_timer + 1
+                if (idle_timer > 20) then
+                    idle_frame = 1 - idle_frame
+                    idle_timer = 0
+                end if
+                anim_timer = 0 ! Сбрасываем таймер ходьбы, пока стоим
             end if
         end if
 
@@ -172,7 +182,13 @@ contains
 
         if (.not. current_tex%loaded) return
 
-        src_rect%x = anim_frame * 64
+        ! Выбираем кадр: если идем - быстрый, если стоим - медленный
+        if (moving) then
+            src_rect%x = anim_frame * 64
+        else
+            src_rect%x = idle_frame * 64
+        end if
+
         src_rect%y = 0
         src_rect%w = 64
         src_rect%h = 128
@@ -182,10 +198,48 @@ contains
         dst_rect%w = 64
         dst_rect%h = 128
 
+        ! ==========================================
+        ! ТЕНЬ (ПРАВИЛЬНЫЙ ВЫТЯНУТЫЙ ЭЛЛИПС)
+        ! ==========================================
+        call sdl_set_render_draw_blend_mode(renderer, SDL_BLENDMODE_BLEND)
+        call sdl_set_render_draw_color(renderer, uint8(0), uint8(0), uint8(0), uint8(130))
+        
+        block
+            type(sdl_rect) :: sh
+            integer :: cx, cy
+
+            ! Центр (X) всегда под ногами
+            cx = dst_rect%x + 32
+            ! Низ спрайта (ноги)
+            cy = dst_rect%y + 116
+
+            if (direction == 2) then
+                ! ====== СПИНА (ИДЕТ ВВЕРХ) ======
+                ! Плавный вытянутый эллипс, уходящий вниз
+                sh%w = 16; sh%x = cx - 8;  sh%y = cy + 6;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 24; sh%x = cx - 12; sh%y = cy + 8;  sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 32; sh%x = cx - 16; sh%y = cy + 10; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 36; sh%x = cx - 18; sh%y = cy + 12; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 36; sh%x = cx - 18; sh%y = cy + 14; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 32; sh%x = cx - 16; sh%y = cy + 16; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 24; sh%x = cx - 12; sh%y = cy + 18; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 16; sh%x = cx - 8;  sh%y = cy + 20; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+            else
+                ! ====== ВНИЗ, ВЛЕВО, ВПРАВО ======
+                ! Обычный овал прямо под ногами
+                sh%w = 16; sh%x = cx - 8;  sh%y = cy - 2; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 24; sh%x = cx - 12; sh%y = cy;     sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 32; sh%x = cx - 16; sh%y = cy + 2; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 36; sh%x = cx - 18; sh%y = cy + 4; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+                sh%w = 24; sh%x = cx - 12; sh%y = cy + 6; sh%h = 2; call sdl_render_fill_rect(renderer, sh)
+            end if
+        end block
+        
         if (flip_flag /= 0) then
             call texture_draw_part_ex(current_tex, renderer, src_rect, dst_rect, flip_flag)
         else
             call texture_draw_part(current_tex, renderer, src_rect, dst_rect)
         end if
+        
     end subroutine
 end module game_player
