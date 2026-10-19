@@ -13,11 +13,11 @@ program rts_prototype
         character(len=50)  :: folder = ""
         character(len=150) :: tileset = ""
         character(len=150) :: music = ""
-        character(len=50)  :: layout_file = ""
-        character(len=50)  :: collision_file = ""
-        character(len=50)  :: areas_file = ""
-        character(len=50)  :: warps_file = ""
-        character(len=50)  :: chests_file = ""
+        character(len=150) :: layout_file = ""    ! <--- стало 150
+        character(len=150) :: collision_file = "" ! <--- стало 150
+        character(len=150) :: areas_file = ""     ! <--- стало 150
+        character(len=150) :: warps_file = ""     ! <--- стало 150
+        character(len=150) :: chests_file = ""    ! <--- стало 150
     end type
 
     type(c_ptr) :: window, renderer
@@ -53,7 +53,7 @@ program rts_prototype
     character(len=50), allocatable :: map_folders(:)
     integer :: num_maps
     character(len=50)  :: current_folder
-    character(len=150) :: layout_path, collision_path, config_path, areas_path
+    character(len=150) :: layout_path, collision_path, areas_path
     type(map_settings) :: current_config
 
     integer(c_int8_t) :: prev_keys(512)
@@ -190,7 +190,18 @@ program rts_prototype
             end if
             
             if (.not. menu_open .and. current_submenu == 0 .and. .not. pause_menu_open) then
-                call player_update(keys)
+                
+                ! Если меню уже запрошено, но мы еще идем - 
+                ! передаем пустые клавиши, чтобы персонаж не делал новых шагов
+                if (pending_menu_request) then
+                    block
+                        integer(c_int8_t) :: empty_keys(512)
+                        empty_keys = 0_c_int8_t
+                        call player_update(empty_keys)
+                    end block
+                else
+                    call player_update(keys)
+                end if
                 
                 ! Запоминаем позицию камеры ДО её обновления
                 prev_cam_x = cam_x
@@ -437,7 +448,7 @@ contains
         integer :: io, eq_pos
         character(len=300) :: line
         character(len=50) :: key
-        character(len=200) :: value
+        character(len=150) :: value  ! <-- ставим 150
         logical :: in_block
         
         in_block = .false.
