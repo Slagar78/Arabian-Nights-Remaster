@@ -10,8 +10,14 @@ program rts_prototype
     implicit none
 
     type :: map_settings
+        character(len=50)  :: folder = ""
         character(len=150) :: tileset = ""
         character(len=150) :: music = ""
+        character(len=50)  :: layout_file = ""
+        character(len=50)  :: collision_file = ""
+        character(len=50)  :: areas_file = ""
+        character(len=50)  :: warps_file = ""
+        character(len=50)  :: chests_file = ""
     end type
 
     type(c_ptr) :: window, renderer
@@ -83,17 +89,19 @@ program rts_prototype
     
     call ui_init()
     
-    call load_maplist("data/maps/maplist.txt", map_folders, num_maps)
+    ! Загружаем список карт и их настройки из нового файла
+    call load_maps_list("data/maps/maplist.txt", map_folders, num_maps)
     if (num_maps == 0) stop "ОШИБКА: Список карт пуст!"
     
     current_folder = trim(map_folders(1))
     
-    write(config_path, '(A,A,A)') "data/maps/", trim(current_folder), "/map.nml"
-    call load_map_config(trim(config_path), current_config)
-    
-    write(layout_path, '(A,A,A)') "data/maps/", trim(current_folder), "/layout.bin"
-    write(collision_path, '(A,A,A)') "data/maps/", trim(current_folder), "/collision.bin"
-    write(areas_path, '(A,A,A)') "data/maps/", trim(current_folder), "/areas.txt"
+    ! Получаем настройки для первой карты
+    call get_map_settings("data/maps/maplist.txt", current_folder, current_config)
+
+    ! Формируем пути на основе данных из файла
+    write(layout_path, '(A,A,A,A)') "data/maps/", trim(current_folder), "/", trim(current_config%layout_file)
+    write(collision_path, '(A,A,A,A)') "data/maps/", trim(current_folder), "/", trim(current_config%collision_file)
+    write(areas_path, '(A,A,A,A)') "data/maps/", trim(current_folder), "/", trim(current_config%areas_file)
     
     print *, "=== ЗАГРУЗКА: ", trim(current_folder), " ==="
     print *, "Тайлсет: ", trim(current_config%tileset)
@@ -384,75 +392,97 @@ program rts_prototype
 
 contains
 
-    subroutine load_maplist(filename, folders, count)
+    ! Читаем список всех карт (ищем строки в квадратных скобках)
+    subroutine load_maps_list(filename, folders, count)
         character(len=*), intent(in) :: filename
         character(len=50), allocatable, intent(out) :: folders(:)
         integer, intent(out) :: count
         integer :: io, i
-        character(len=50) :: buffer
+        character(len=300) :: line
         
         count = 0
         open(10, file=filename, status='old', iostat=io)
-        if (io /= 0) then
-            print *, "ОШИБКА: Не найден файл ", filename
-            stop
-        end if
+        if (io /= 0) stop "ОШИБКА: Не найден файл " // trim(filename)
         
+        ! Первый проход: считаем количество карт
         do
-            read(10, '(A)', iostat=io) buffer
+            read(10, '(A)', iostat=io) line
             if (io /= 0) exit
-            if (len_trim(buffer) > 0 .and. buffer(1:1) /= '#') count = count + 1
+            line = adjustl(line)
+            if (line(1:1) == '[') count = count + 1
         end do
         rewind(10)
         
+        ! Второй проход: запоминаем названия
         allocate(folders(count))
-        do i = 1, count
-            read(10, '(A)') folders(i)
-            folders(i) = trim(adjustl(folders(i)))
+        i = 1
+        do
+            read(10, '(A)', iostat=io) line
+            if (io /= 0) exit
+            line = adjustl(line)
+            if (line(1:1) == '[') then
+                ! Вырезаем текст между [ и ]
+                folders(i) = line(2:index(line, ']')-1)
+                i = i + 1
+            end if
         end do
         close(10)
     end subroutine
 
-    subroutine load_map_config(filename, config)
+    ! Читаем настройки для конкретной карты
+    subroutine get_map_settings(filename, folder_name, config)
         character(len=*), intent(in) :: filename
+        character(len=*), intent(in) :: folder_name
         type(map_settings), intent(out) :: config
-        integer :: io
-        character(len=200) :: line
+        integer :: io, eq_pos
+        character(len=300) :: line
+        character(len=50) :: key
+        character(len=200) :: value
+        logical :: in_block
         
-        config%tileset = "assets_game/tilesets/tileset.png"
-        config%music = ""
-        
+        in_block = .false.
         open(11, file=filename, status='old', iostat=io)
-        if (io /= 0) then
-            print *, "ВНИМАНИЕ: Не найден ", trim(filename), ". Используем тайлсет по умолчанию."
-            return
-        end if
+        if (io /= 0) return
         
         do
             read(11, '(A)', iostat=io) line
             if (io /= 0) exit
+            line = adjustl(line)
             
-            if (index(line, 'tileset') > 0) then
-                call extract_string(line, config%tileset)
-            else if (index(line, 'music') > 0) then
-                call extract_string(line, config%music)
+            ! Пропускаем пустые строки и комментарии
+            if (len_trim(line) == 0 .or. line(1:1) == '#') cycle
+            
+            ! Если нашли начало блока
+            if (line(1:1) == '[') then
+                if (index(line, trim(folder_name)) > 0) then
+                    in_block = .true.
+                    config%folder = trim(folder_name)
+                else
+                    in_block = .false.
+                end if
+                cycle
+            end if
+            
+            ! Если мы внутри нужного блока, читаем ключ = значение
+            if (in_block) then
+                eq_pos = index(line, '=')
+                if (eq_pos > 0) then
+                    key = trim(adjustl(line(1:eq_pos-1)))
+                    value = trim(adjustl(line(eq_pos+1:)))
+                    
+                    select case (key)
+                        case ('tileset');   config%tileset = value
+                        case ('music');     config%music = value
+                        case ('layout');    config%layout_file = value
+                        case ('collision'); config%collision_file = value
+                        case ('areas');     config%areas_file = value
+                        case ('warps');     config%warps_file = value
+                        case ('chests');    config%chests_file = value
+                    end select
+                end if
             end if
         end do
         close(11)
-    end subroutine
-
-    subroutine extract_string(line, result_str)
-        character(len=*), intent(in) :: line
-        character(len=*), intent(out) :: result_str
-        integer :: p1, p2
-        
-        p1 = index(line, "'")
-        if (p1 > 0) then
-            p2 = index(line(p1+1:), "'")
-            if (p2 > 0) then
-                result_str = line(p1+1 : p1+p2-1)
-            end if
-        end if
     end subroutine
 
 end program
