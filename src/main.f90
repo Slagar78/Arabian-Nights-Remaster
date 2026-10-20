@@ -1,6 +1,7 @@
 program rts_prototype
     use, intrinsic :: iso_c_binding
     use :: sdl2
+    use :: audio
     use :: textures
     use :: ui
     use :: game_map
@@ -90,6 +91,15 @@ program rts_prototype
     
     call ui_init()
     
+    ! ==========================================
+    ! ЗАПУСКАЕМ АУДИО И МУЗЫКУ ИНТРО
+    ! ==========================================
+    call audio_init() ! Включаем аудиосистему SDL2_mixer
+    
+    ! Запускаем музыку (0 = проиграть 1 раз, -1 = бесконечный цикл)
+    call audio_play_music("assets_game/music/intro.ogg", 0) 
+    ! ==========================================
+
     ! ЗАПУСКАЕМ PS1-ИНТРО
     call play_intro(renderer)
     

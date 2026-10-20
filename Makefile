@@ -1,11 +1,11 @@
 FC      = gfortran
 FCFLAGS = -O2 -Wall -fno-range-check -Ilib -Isrc
 INC     = -IC:/msys64/ucrt64/include/SDL2
-LIB     = -LC:/msys64/ucrt64/lib -lSDL2 -lSDL2_image -lSDL2_ttf
+LIB     = -LC:/msys64/ucrt64/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
 # Разделяем объектные файлы движка и игры
-LIB_OBJ = lib/sdl_bind.o lib/textures.o lib/timer.o
-# ДОБАВЛЕН src/intro.o ПЕРЕД main.o
+# ДОБАВЛЕН lib/audio.o
+LIB_OBJ = lib/sdl_bind.o lib/textures.o lib/timer.o lib/audio.o
 SRC_OBJ = src/ui.o src/map.o src/camera.o src/player.o src/intro.o src/main.o
 
 OBJ = $(LIB_OBJ) $(SRC_OBJ)
@@ -25,6 +25,7 @@ run: app.exe
 	cp -f /c/msys64/ucrt64/bin/SDL2.dll . 2>/dev/null || true
 	cp -f /c/msys64/ucrt64/bin/SDL2_image.dll . 2>/dev/null || true
 	cp -f /c/msys64/ucrt64/bin/SDL2_ttf.dll . 2>/dev/null || true
+	cp -f /c/msys64/ucrt64/bin/SDL2_mixer.dll . 2>/dev/null || true
 	cmd //c "chcp 65001 >nul & app.exe"
 
 clean:

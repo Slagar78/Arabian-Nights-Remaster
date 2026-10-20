@@ -138,11 +138,18 @@ contains
                 ! 0.0 - 0.7 сек: Плавно проявляется только логотип FS
                 alpha_fs_logo = int((real(elapsed) / 700.0) * 255.0)
                 alpha_fs_text = 0
-            else if (elapsed < 2200) then
-                ! 0.7 - 2.2 сек: Логотип на месте, плавно (1.5 сек) проявляется текст
+            else if (elapsed < 1700) then
+                ! 0.7 - 1.7 сек: Логотип висит, а текст ждет (пауза 1.0 сек)
                 alpha_fs_logo = 255
-                alpha_fs_text = int(((real(elapsed) - 700.0) / 1500.0) * 255.0)
+                alpha_fs_text = 0
+            else if (elapsed < 3200) then
+                ! 1.7 - 3.2 сек: Плавно проявляется текст (за 1.5 сек)
+                alpha_fs_logo = 255
+                alpha_fs_text = int(((real(elapsed) - 1700.0) / 1500.0) * 255.0)
             else if (elapsed < 7500) then
+                ! 3.2 - 7.5 сек: Всё висит на экране
+                alpha_fs_logo = 255
+                alpha_fs_text = 255
                 ! 2.2 - 7.5 сек: Всё висит на экране (пауза)
                 alpha_fs_logo = 255
                 alpha_fs_text = 255
