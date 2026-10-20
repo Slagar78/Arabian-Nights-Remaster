@@ -194,7 +194,7 @@ contains
         src_rect%h = 128
 
         dst_rect%x = px - cam_x
-        dst_rect%y = py - cam_y - 64 
+        dst_rect%y = py - cam_y - 86  ! 64 (высота) + 22 (подъем)
         dst_rect%w = 64
         dst_rect%h = 128
 
@@ -209,8 +209,8 @@ contains
             integer :: cx, cy
 
             cx = dst_rect%x + 32
-            ! ВОТ ЗДЕСЬ ИСПРАВЛЕНИЕ: возвращаем 112, чтобы тень была под ногами
-            cy = dst_rect%y + 112 
+            ! ВОТ ЗДЕСЬ ИСПРАВЛЕНИЕ:
+            cy = dst_rect%y + 120 
 
             if (direction == 2) then
                 ! ====== СПИНА (ИДЕТ ВВЕРХ) ======
