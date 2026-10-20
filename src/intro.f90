@@ -181,8 +181,15 @@ contains
             call sdl_delay(16)
         end do
 
-        ! ВОЗВРАЩАЕМ ПИКСЕЛЬНЫЙ РЕЖИМ ДЛЯ ИГРЫ
+        ! Освобождаем текстуры заставки перед выходом
+        call texture_free(tex_diamond)
+        call texture_free(tex_top)
+        call texture_free(tex_bot)
+        call texture_free(tex_fs_logo)
+        call texture_free(tex_fs_text)
+        
+        ! ВОЗВРАЩАЕМ ПИКСЕЛЬНЫЙ РЕЖИМ ДЛЯ ИГРЫ (делается один раз в конце)
         hint_res = sdl_set_hint("SDL_RENDER_SCALE_QUALITY" // c_null_char, "0" // c_null_char)
-
-    end subroutine
+      end subroutine
+    
 end module game_intro

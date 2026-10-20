@@ -408,11 +408,32 @@ program rts_prototype
         ! -------------------------
 
         call sdl_render_present(renderer)
-        call ui_update() 
-    end do
+        call ui_update()
+    end do ! <--- ВОТ ЗДЕСЬ ЗАКАНЧИВАЕТСЯ ИГРОВОЙ ЦИКЛ
+    
+    ! 1. Сначала закрываем аудио
+    call audio_shutdown()
 
+    ! 2. Освобождаем ВСЕ текстуры через нашу новую функцию
+    call texture_free(btn_tex)
+    call texture_free(tex_track)
+    call texture_free(tex_thumb)
+    call texture_free(tex_down)
+    call texture_free(tex_up)
+    call texture_free(tex_right)
+    call texture_free(crystal_red)
+    call texture_free(crystal_blue)
+    call texture_free(crystal_yellow)
+    call texture_free(crystal_green)
+    call texture_free(menu_panel_tex)
+    call texture_free(portrait_frame_tex)
+    call texture_free(portrait_tex)
+
+    ! 3. Теперь уничтожаем рендерер и окно
     call sdl_destroy_renderer(renderer)
     call sdl_destroy_window(window)
+    
+    ! 4. Выходим из SDL
     call sdl_quit()
 
 contains

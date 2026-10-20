@@ -121,4 +121,20 @@ contains
         call sdl_render_copy_ex(renderer, tex%ptr, c_loc(src), dst, 0.0_c_double, c_null_ptr, flip)
     end subroutine
 
+    ! Освобождение текстуры (аналог деструктора)
+    subroutine texture_free(tex)
+        type(texture_t), intent(inout) :: tex
+
+        ! Проверяем, что текстура реально была загружена и указатель существует
+        if (tex%loaded .and. c_associated(tex%ptr)) then
+            call sdl_destroy_texture(tex%ptr)
+        end if
+
+        ! Обнуляем структуру, чтобы её можно было безопасно использовать снова
+        tex%ptr = c_null_ptr
+        tex%w = 0
+        tex%h = 0
+        tex%loaded = .false.
+    end subroutine
+
 end module textures
