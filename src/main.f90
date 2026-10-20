@@ -372,15 +372,12 @@ program rts_prototype
         end if
 
         ! Рисуем интерфейс ТОЛЬКО если меню паузы закрыто
-        if (.not. pause_menu_open) then
-            
-            ! Переводим на итальянский и сдвигаем чуть левее
-            call ui_draw_text(renderer, "Audio", 970, 30, 255, 255, 255)
+        if (.not. pause_menu_open) then            
+            call ui_draw_text(renderer, "Audio", 1050, 30, 255, 255, 255)
             if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1150, 20, 80, 40, sound_on)) print *, "Audio: ", sound_on
 
-            call ui_draw_text(renderer, "Musica", 970, 90, 255, 255, 255)
-            if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1150, 80, 80, 40, music_on)) print *, "Musica: ", music_on
-            
+            call ui_draw_text(renderer, "Musica", 1050, 90, 255, 255, 255)
+            if (ui_toggle_simple(renderer, tex_track, tex_thumb, 1150, 80, 80, 40, music_on)) print *, "Musica: ", music_on            
         end if
 
          ! --- МЕНЮ ПАУЗЫ (ESC) ---
