@@ -42,9 +42,6 @@ program rts_prototype
     integer :: menu_selected = 0 
     integer :: current_submenu = 0 
     integer :: menu_delay = 0
-    ! ДЛЯ КАМЕРЫ:
-    integer :: prev_cam_x = 0
-    integer :: prev_cam_y = 0
     
     logical :: flipping = .false.
     integer :: flip_timer = 0
@@ -217,9 +214,7 @@ program rts_prototype
                     call player_update(keys)
                 end if
                 
-                ! Запоминаем позицию камеры ДО её обновления
-                prev_cam_x = cam_x
-                prev_cam_y = cam_y
+                ! (prev_cam_x и prev_cam_y можно удалить из объявлений в начале main)
 
                 if (moving) then
                     call camera_update(px, py, direction)
@@ -227,10 +222,10 @@ program rts_prototype
                     call camera_update(px, py, 0)
                 end if
 
-                ! --- БЛОК: Отложенное открытие меню (ждем и игрока, и камеру) ---
+                ! --- БЛОК: Отложенное открытие меню ---
                 if (pending_menu_request) then
-                    ! Проверяем: игрок стоит И камера больше не двигается (cam_x не изменился)
-                    if (.not. moving .and. cam_x == prev_cam_x .and. cam_y == prev_cam_y) then
+                    ! Ждём, пока игрок остановится И камера полностью доедет
+                    if (.not. moving .and. cam_arrived) then
                         menu_delay = menu_delay + 1
                         if (menu_delay >= 3) then
                             pending_menu_request = .false.
@@ -238,7 +233,6 @@ program rts_prototype
                             menu_open = .true.
                         end if
                     else
-                        ! Если игрок или камера все еще движутся, сбрасываем таймер
                         menu_delay = 0
                     end if
                 end if
