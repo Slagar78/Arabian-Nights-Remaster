@@ -5,7 +5,8 @@ LIB     = -LC:/msys64/ucrt64/lib -lSDL2 -lSDL2_image -lSDL2_ttf
 
 # Разделяем объектные файлы движка и игры
 LIB_OBJ = lib/sdl_bind.o lib/textures.o lib/timer.o
-SRC_OBJ = src/ui.o src/map.o src/camera.o src/player.o src/main.o
+# ДОБАВЛЕН src/intro.o ПЕРЕД main.o
+SRC_OBJ = src/ui.o src/map.o src/camera.o src/player.o src/intro.o src/main.o
 
 OBJ = $(LIB_OBJ) $(SRC_OBJ)
 

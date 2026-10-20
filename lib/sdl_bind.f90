@@ -187,7 +187,19 @@ module sdl2
         subroutine sdl_delay(ms) bind(C, name="SDL_Delay")
             import :: c_int32_t
             integer(c_int32_t), value :: ms
+        end subroutine        
+        subroutine sdl_set_texture_alpha_mod(t, a) bind(C, name="SDL_SetTextureAlphaMod")
+            import :: c_ptr, c_int8_t
+            type(c_ptr), value :: t
+            integer(c_int8_t), value :: a
         end subroutine
+        function sdl_set_hint(name, value) bind(C, name="SDL_SetHint") result(r)
+            import :: c_char, c_bool
+            character(kind=c_char), intent(in) :: name(*)
+            character(kind=c_char), intent(in) :: value(*)
+            logical(c_bool) :: r
+        end function
+        
     end interface
 
 contains

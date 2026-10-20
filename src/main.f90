@@ -7,6 +7,7 @@ program rts_prototype
     use :: game_camera
     use :: game_player
     use :: timer
+    use :: game_intro
     implicit none
 
     type :: map_settings
@@ -88,6 +89,9 @@ program rts_prototype
     call texture_load(portrait_tex, renderer, "assets_game/portraits/shukran.png")
     
     call ui_init()
+    
+    ! ЗАПУСКАЕМ PS1-ИНТРО
+    call play_intro(renderer)
     
     ! Загружаем список карт и их настройки из нового файла
     call load_maps_list("data/maps/maplist.txt", map_folders, num_maps)
