@@ -6,7 +6,6 @@ module ui_status
     implicit none
 
 contains
-    ! ДОБАВИЛИ ПАРАМЕТР portrait_frame_tex
     subroutine draw_character_status(renderer, portrait_tex, panel_tex, portrait_frame_tex)
         type(c_ptr), intent(in) :: renderer
         type(texture_t), intent(in) :: portrait_tex, panel_tex, portrait_frame_tex
@@ -41,42 +40,47 @@ contains
             call texture_draw_part(portrait_frame_tex, renderer, p_src, frame_dst)
         end if
         
-        ! ИМЯ: Голубой цвет
-        call ui_draw_text(renderer, "Shukran", 415, 490, 0, 200, 255)
+        ! ИМЯ: Черный цвет
+        call ui_draw_text(renderer, "Shukran", 415, 490, 0, 0, 0)
         
-        ! УРОВЕНЬ: Разделенный
-        call ui_draw_text(renderer, "Livello", 405, 520, 40, 20, 10)
-        call ui_draw_text(renderer, "12", 480, 520, 150, 255, 150)
+        ! УРОВЕНЬ: Темно-коричневое слово, Вишнево-фиолетовая цифра
+        call ui_draw_text(renderer, "Livello", 405, 520, 80, 40, 10)
+        call ui_draw_text(renderer, "12", 480, 520, 160, 30, 80)
 
         ! ЦЕНТРАЛЬНАЯ КОЛОНКА: HP/MP
         call ui_draw_text(renderer, "HP: 120 / 120", 580, 240, 255, 100, 100)
         call ui_draw_text(renderer, "MP:  45 /  50", 580, 280, 100, 150, 255)
 
-        ! Характеристики (Выравниваем в колонку)
-        call ui_draw_text_small(renderer, "FORZA:",       580, 350, 255, 255, 255)
-        call ui_draw_text_small(renderer, "RESISTENZA:",  580, 380, 255, 255, 255)
-        call ui_draw_text_small(renderer, "AGILITA:",     580, 410, 255, 255, 255)
-        call ui_draw_text_small(renderer, "INTELLIGENZA:",580, 440, 255, 255, 255)
+        ! Характеристики (ТЕПЕРЬ ЧЕРНЫЕ)
+        call ui_draw_text_small(renderer, "FORZA",       580, 350, 0, 0, 0)
+        call ui_draw_text_small(renderer, "RESISTENZA",  580, 380, 0, 0, 0)
+        call ui_draw_text_small(renderer, "AGILITA",     580, 410, 0, 0, 0)
+        call ui_draw_text_small(renderer, "INTELLIGENZA",580, 440, 0, 0, 0)
         
-        ! Цифры статов
-        call ui_draw_text_small(renderer, "4", 760, 350, 255, 255, 255)
-        call ui_draw_text_small(renderer, "4", 760, 380, 255, 255, 255)
-        call ui_draw_text_small(renderer, "4", 760, 410, 255, 255, 255)
-        call ui_draw_text_small(renderer, "4", 760, 440, 255, 255, 255)
+        ! Цифры статов (ТЕПЕРЬ ЧЕРНЫЕ)
+        call ui_draw_text_small(renderer, "4", 760, 350, 0, 0, 0)
+        call ui_draw_text_small(renderer, "4", 760, 380, 0, 0, 0)
+        call ui_draw_text_small(renderer, "4", 760, 410, 0, 0, 0)
+        call ui_draw_text_small(renderer, "4", 760, 440, 0, 0, 0)
         
-        call ui_draw_text_small(renderer, "EXP: 450 / 1000", 580, 500, 150, 255, 150)
+        ! EXP: Зеленый
+        call ui_draw_text_small(renderer, "EXP: 450 / 1000", 580, 500, 0, 180, 0)
 
         ! ПРАВАЯ КОЛОНКА: ИНВЕНТАРЬ
-        call ui_draw_text(renderer, "ZAINO", 820, 240, 255, 215, 0)
+        ! ZAINO: Темно-коричневый
+        call ui_draw_text(renderer, "ZAINO", 820, 240, 80, 40, 10)
         
-        call ui_draw_text_small(renderer, "1. Scimitarra [E]", 820, 290, 255, 255, 255)
-        call ui_draw_text_small(renderer, "2. Pozione",        820, 320, 255, 255, 255)
-        call ui_draw_text_small(renderer, "3. Armatura   [E]", 820, 350, 255, 255, 255)
+        ! Предметы 1-3: ЧЕРНЫЕ
+        call ui_draw_text_small(renderer, "1. Scimitarra [E]", 820, 290, 0, 0, 0)
+        call ui_draw_text_small(renderer, "2. Pozione",        820, 320, 0, 0, 0)
+        call ui_draw_text_small(renderer, "3. Armatura   [E]", 820, 350, 0, 0, 0)
+        
+        ! Предметы 4-5: Остаются СЕРЫМИ (130, 130, 130)
         call ui_draw_text_small(renderer, "4. Vuoto",          820, 380, 130, 130, 130)
         call ui_draw_text_small(renderer, "5. Vuoto",          820, 410, 130, 130, 130)
 
-        ! Деньги
-        call ui_draw_text_small(renderer, "Oro: 150", 820, 500, 255, 215, 0)
+        ! Oro: Темно-золотой
+        call ui_draw_text_small(renderer, "Oro: 150", 820, 500, 184, 134, 11)
         
         ! Подсказка внизу
         call ui_draw_text(renderer, "Premi ESC per chiudere", 530, 620, 150, 150, 150)

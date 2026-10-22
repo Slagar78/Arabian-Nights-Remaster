@@ -13,14 +13,14 @@ contains
         if (ttf_init() /= 0) print *, "ОШИБКА: TTF_Init failed"
         
         ! 1. Основной шрифт 20px
-        default_font = ttf_open_font("assets/fonts/cleopatra.ttf" // c_null_char, 20)
+        default_font = ttf_open_font("assets/fonts/cleopatra.ttf" // c_null_char, 22)
         if (.not. c_associated(default_font)) then
             print *, "ВНИМАНИЕ: Шрифт не найден! Грузим Arial 20."
             default_font = ttf_open_font("C:/Windows/Fonts/arial.ttf" // c_null_char, 20)
         end if
 
-        ! 2. Шрифт для статов и инвентаря 16px
-        stats_font = ttf_open_font("assets/fonts/cleopatra.ttf" // c_null_char, 17)
+        ! 2. Шрифт для статов и инвентаря (размер 17)
+        stats_font = ttf_open_font("assets/fonts/cleopatra.ttf" // c_null_char, 18)
         if (.not. c_associated(stats_font)) then
             print *, "ВНИМАНИЕ: Шрифт статов не найден! Грузим Arial 16."
             stats_font = ttf_open_font("C:/Windows/Fonts/arial.ttf" // c_null_char, 16)
@@ -54,20 +54,23 @@ contains
                 call sdl_free_surface(txt_surf)
                 call sdl_query_texture(txt_tex, c_null_ptr, c_null_ptr, tw, th)
                 
-                block ! Тень
-                    type(sdl_color) :: shadow_col
-                    type(c_ptr) :: shadow_surf, shadow_tex
-                    type(sdl_rect) :: shadow_dst
-                    shadow_col%r = uint8(0); shadow_col%g = uint8(0); shadow_col%b = uint8(0); shadow_col%a = uint8(180)
-                    shadow_surf = ttf_render_utf8_blended(default_font, trim(text) // c_null_char, shadow_col)
-                    if (c_associated(shadow_surf)) then
-                        shadow_tex = sdl_create_texture_from_surface(renderer, shadow_surf)
-                        call sdl_free_surface(shadow_surf)
-                        shadow_dst%x = x + 2; shadow_dst%y = y + 2; shadow_dst%w = tw; shadow_dst%h = th
-                        call sdl_render_copy(renderer, shadow_tex, c_null_ptr, shadow_dst)
-                        call sdl_destroy_texture(shadow_tex)
-                    end if
-                end block
+                ! ВОТ ТУТ ПРОВЕРКА: Рисуем тень ТОЛЬКО если текст белый (255, 255, 255)
+                if (r == 255 .and. g == 255 .and. b == 255) then
+                    block ! Тень
+                        type(sdl_color) :: shadow_col
+                        type(c_ptr) :: shadow_surf, shadow_tex
+                        type(sdl_rect) :: shadow_dst
+                        shadow_col%r = uint8(0); shadow_col%g = uint8(0); shadow_col%b = uint8(0); shadow_col%a = uint8(180)
+                        shadow_surf = ttf_render_utf8_blended(default_font, trim(text) // c_null_char, shadow_col)
+                        if (c_associated(shadow_surf)) then
+                            shadow_tex = sdl_create_texture_from_surface(renderer, shadow_surf)
+                            call sdl_free_surface(shadow_surf)
+                            shadow_dst%x = x + 2; shadow_dst%y = y + 2; shadow_dst%w = tw; shadow_dst%h = th
+                            call sdl_render_copy(renderer, shadow_tex, c_null_ptr, shadow_dst)
+                            call sdl_destroy_texture(shadow_tex)
+                        end if
+                    end block
+                end if
 
                 dst%x = x; dst%y = y; dst%w = tw; dst%h = th
                 call sdl_render_copy(renderer, txt_tex, c_null_ptr, dst)
@@ -76,7 +79,7 @@ contains
         end if
     end subroutine
 
-    ! --- МЕЛКИЙ ТЕКСТ (16px) ---
+    ! --- МЕЛКИЙ ТЕКСТ (17px) ---
     subroutine ui_draw_text_small(renderer, text, x, y, r, g, b)
         type(c_ptr), intent(in) :: renderer
         character(len=*), intent(in) :: text
@@ -94,20 +97,23 @@ contains
                 call sdl_free_surface(txt_surf)
                 call sdl_query_texture(txt_tex, c_null_ptr, c_null_ptr, tw, th)
                 
-                block ! Тень
-                    type(sdl_color) :: shadow_col
-                    type(c_ptr) :: shadow_surf, shadow_tex
-                    type(sdl_rect) :: shadow_dst
-                    shadow_col%r = uint8(0); shadow_col%g = uint8(0); shadow_col%b = uint8(0); shadow_col%a = uint8(180)
-                    shadow_surf = ttf_render_utf8_blended(stats_font, trim(text) // c_null_char, shadow_col)
-                    if (c_associated(shadow_surf)) then
-                        shadow_tex = sdl_create_texture_from_surface(renderer, shadow_surf)
-                        call sdl_free_surface(shadow_surf)
-                        shadow_dst%x = x + 1; shadow_dst%y = y + 1; shadow_dst%w = tw; shadow_dst%h = th
-                        call sdl_render_copy(renderer, shadow_tex, c_null_ptr, shadow_dst)
-                        call sdl_destroy_texture(shadow_tex)
-                    end if
-                end block
+                ! ВОТ ТУТ ПРОВЕРКА: Рисуем тень ТОЛЬКО если текст белый
+                if (r == 255 .and. g == 255 .and. b == 255) then
+                    block ! Тень
+                        type(sdl_color) :: shadow_col
+                        type(c_ptr) :: shadow_surf, shadow_tex
+                        type(sdl_rect) :: shadow_dst
+                        shadow_col%r = uint8(0); shadow_col%g = uint8(0); shadow_col%b = uint8(0); shadow_col%a = uint8(180)
+                        shadow_surf = ttf_render_utf8_blended(stats_font, trim(text) // c_null_char, shadow_col)
+                        if (c_associated(shadow_surf)) then
+                            shadow_tex = sdl_create_texture_from_surface(renderer, shadow_surf)
+                            call sdl_free_surface(shadow_surf)
+                            shadow_dst%x = x + 1; shadow_dst%y = y + 1; shadow_dst%w = tw; shadow_dst%h = th
+                            call sdl_render_copy(renderer, shadow_tex, c_null_ptr, shadow_dst)
+                            call sdl_destroy_texture(shadow_tex)
+                        end if
+                    end block
+                end if
 
                 dst%x = x; dst%y = y; dst%w = tw; dst%h = th
                 call sdl_render_copy(renderer, txt_tex, c_null_ptr, dst)
