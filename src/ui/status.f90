@@ -6,11 +6,12 @@ module ui_status
     implicit none
 
 contains
-    subroutine draw_character_status(renderer, portrait_tex, panel_tex)
+    ! ДОБАВИЛИ ПАРАМЕТР portrait_frame_tex
+    subroutine draw_character_status(renderer, portrait_tex, panel_tex, portrait_frame_tex)
         type(c_ptr), intent(in) :: renderer
-        type(texture_t), intent(in) :: portrait_tex, panel_tex
+        type(texture_t), intent(in) :: portrait_tex, panel_tex, portrait_frame_tex
         
-        type(sdl_rect) :: bg_rect, port_dst
+        type(sdl_rect) :: bg_rect, port_dst, frame_dst
         type(sdl_rect) :: src_port, p_src, p_dst
         
         ! 1. Затемнение фона
@@ -33,6 +34,13 @@ contains
             call texture_draw_part(portrait_tex, renderer, src_port, port_dst)
         end if
         
+        ! ВОЗВРАЩАЕМ РАМКУ ПОРТРЕТА (рисуем ПОВЕРХ портрета)
+        if (portrait_frame_tex%loaded) then
+            p_src%x = 0; p_src%y = 0; p_src%w = 200; p_src%h = 256
+            frame_dst%x = 350; frame_dst%y = 226; frame_dst%w = 200; frame_dst%h = 256
+            call texture_draw_part(portrait_frame_tex, renderer, p_src, frame_dst)
+        end if
+        
         ! ИМЯ: Голубой цвет
         call ui_draw_text(renderer, "Shukran", 415, 490, 0, 200, 255)
         
@@ -45,13 +53,12 @@ contains
         call ui_draw_text(renderer, "MP:  45 /  50", 580, 280, 100, 150, 255)
 
         ! Характеристики (Выравниваем в колонку)
-        ! Названия статов
-        call ui_draw_text_small(renderer, "FORZA",       580, 350, 255, 255, 255)
-        call ui_draw_text_small(renderer, "RESISTENZA",  580, 380, 255, 255, 255)
-        call ui_draw_text_small(renderer, "AGILITA",     580, 410, 255, 255, 255)
-        call ui_draw_text_small(renderer, "INTELLIGENZA",580, 440, 255, 255, 255)
+        call ui_draw_text_small(renderer, "FORZA:",       580, 350, 255, 255, 255)
+        call ui_draw_text_small(renderer, "RESISTENZA:",  580, 380, 255, 255, 255)
+        call ui_draw_text_small(renderer, "AGILITA:",     580, 410, 255, 255, 255)
+        call ui_draw_text_small(renderer, "INTELLIGENZA:",580, 440, 255, 255, 255)
         
-        ! Цифры статов (все 4, на строго фиксированной позиции X=760)
+        ! Цифры статов
         call ui_draw_text_small(renderer, "4", 760, 350, 255, 255, 255)
         call ui_draw_text_small(renderer, "4", 760, 380, 255, 255, 255)
         call ui_draw_text_small(renderer, "4", 760, 410, 255, 255, 255)

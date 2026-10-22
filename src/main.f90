@@ -331,7 +331,8 @@ program rts_prototype
         if (current_submenu > 0) then
             if (current_submenu == 1) then
                 ! Вкладка "Stato" (Статус)
-                call draw_character_status(renderer, portrait_tex, menu_panel_tex)
+                ! ДОБАВЛЯЕМ portrait_frame_tex ТРЕТЬИМ ПАРАМЕТРОМ
+                call draw_character_status(renderer, portrait_tex, menu_panel_tex, portrait_frame_tex)
                 
             else if (current_submenu == 2) then
                 ! Вкладка "Magia" (Магия)
