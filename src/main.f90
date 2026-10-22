@@ -10,6 +10,8 @@ program rts_prototype
     use :: timer
     use :: game_intro
     use :: ui_status
+    use :: ui_magia
+    
     implicit none
 
     type :: map_settings
@@ -33,6 +35,7 @@ program rts_prototype
     type(texture_t) :: tex_down, tex_up, tex_right
     type(texture_t) :: crystal_red, crystal_blue, crystal_yellow, crystal_green
     type(texture_t) :: menu_panel_tex, portrait_frame_tex, portrait_tex
+    type(texture_t) :: mystic_card_tex
     
     logical :: sound_on, music_on
     type(sdl_rect) :: top_bar
@@ -89,6 +92,7 @@ program rts_prototype
     call texture_load(menu_panel_tex, renderer, "assets_game/menu/menu_panel.png")
     call texture_load(portrait_frame_tex, renderer, "assets_game/menu/portrait_frame.png")
     call texture_load(portrait_tex, renderer, "assets_game/portraits/shukran.png")
+    call texture_load(mystic_card_tex, renderer, "assets_game/menu/mystic_card.png")
     
     call ui_init()
     
@@ -175,11 +179,8 @@ program rts_prototype
 
             if (current_submenu > 0) then
                 if (keys(23) /= 0 .and. prev_keys(23) == 0) then
-                    if (current_submenu == 1 .and. status_state == 2) then
-                        status_state = 3    ! Запускаем анимацию уезда вниз
-                    else if (current_submenu /= 1) then
-                        current_submenu = 0 ! Для остальных меню (когда сделаем) закрываем сразу
-                        menu_open = .true.
+                    if (status_state == 2) then
+                        status_state = 3    ! Запускаем анимацию уезда вниз ДЛЯ ЛЮБОГО МЕНЮ
                     end if
                 end if
             else
@@ -195,8 +196,12 @@ program rts_prototype
                     else if (menu_open) then
                         if (menu_selected == 0) then
                             current_submenu = 1 
-                            status_y = 720      ! Сбрасываем меню вниз
-                            status_state = 1    ! Запускаем выезд снизу
+                            status_y = 720
+                            status_state = 1
+                        else if (menu_selected == 1) then  !
+                            current_submenu = 2 
+                            status_y = 720
+                            status_state = 1
                         end if
                         menu_open = .false. 
                     end if
@@ -363,7 +368,7 @@ program rts_prototype
                 
             else if (current_submenu == 2) then
                 ! Вкладка "Magia" (Магия)
-                ! Пока пусто, сюда будем вызывать draw_magic_menu
+                call draw_magic_menu(renderer, mystic_card_tex, status_y)
                 
             else if (current_submenu == 3) then
                 ! Вкладка "Oggetti" (Предметы)
@@ -430,6 +435,7 @@ program rts_prototype
     call texture_free(menu_panel_tex)
     call texture_free(portrait_frame_tex)
     call texture_free(portrait_tex)
+    call texture_free(mystic_card_tex)
 
     ! 3. Теперь уничтожаем рендерер и окно
     call sdl_destroy_renderer(renderer)
