@@ -44,6 +44,9 @@ program rts_prototype
     integer :: current_submenu = 0 
     integer :: menu_delay = 0
     
+    integer :: status_y = 720      ! Начальное положение меню (за нижним краем экрана)
+    integer :: status_state = 0    ! Состояние: 0=скрыто, 1=выезжает, 2=открыто, 3=уезжает
+    
     logical :: flipping = .false.
     integer :: flip_timer = 0
     real :: flip_phase = 0.0
@@ -143,6 +146,24 @@ program rts_prototype
         end do
         
         if (timer_update()) then
+            
+            ! --- АНИМАЦИЯ ВЫЕЗДА/УЕЗДА МЕНЮ СТАТУСА ---
+            if (status_state == 1) then
+                status_y = status_y - 80    ! Скорость выезда (80 пикс/кадр - очень быстро)
+                if (status_y <= 0) then
+                    status_y = 0
+                    status_state = 2        ! Меню на месте, ждем нажатий
+                end if
+            else if (status_state == 3) then
+                status_y = status_y + 80    ! Скорость уезда
+                if (status_y >= 720) then
+                    status_y = 720
+                    status_state = 0        ! Меню полностью уехало
+                    current_submenu = 0     ! Теперь возвращаемся в главное меню
+                    menu_open = .true.
+                end if
+            end if
+
             ! Открытие/закрытие меню паузы по Esc
             if (keys(42) /= 0 .and. prev_keys(42) == 0) then
                 pause_menu_open = .not. pause_menu_open
@@ -154,8 +175,12 @@ program rts_prototype
 
             if (current_submenu > 0) then
                 if (keys(23) /= 0 .and. prev_keys(23) == 0) then
-                    current_submenu = 0
-                    menu_open = .true.
+                    if (current_submenu == 1 .and. status_state == 2) then
+                        status_state = 3    ! Запускаем анимацию уезда вниз
+                    else if (current_submenu /= 1) then
+                        current_submenu = 0 ! Для остальных меню (когда сделаем) закрываем сразу
+                        menu_open = .true.
+                    end if
                 end if
             else
                 if ((keys(5) /= 0 .and. prev_keys(5) == 0) .or. (keys(8) /= 0 .and. prev_keys(8) == 0)) then
@@ -168,7 +193,11 @@ program rts_prototype
                             menu_open = .true.
                         end if
                     else if (menu_open) then
-                        if (menu_selected == 0) current_submenu = 1 
+                        if (menu_selected == 0) then
+                            current_submenu = 1 
+                            status_y = 720      ! Сбрасываем меню вниз
+                            status_state = 1    ! Запускаем выезд снизу
+                        end if
                         menu_open = .false. 
                     end if
                 end if
@@ -330,9 +359,7 @@ program rts_prototype
         ! --- ОТРИСОВКА ПОДМЕНЮ ---
         if (current_submenu > 0) then
             if (current_submenu == 1) then
-                ! Вкладка "Stato" (Статус)
-                ! ДОБАВЛЯЕМ portrait_frame_tex ТРЕТЬИМ ПАРАМЕТРОМ
-                call draw_character_status(renderer, portrait_tex, menu_panel_tex, portrait_frame_tex)
+                call draw_character_status(renderer, portrait_tex, menu_panel_tex, portrait_frame_tex, status_y)
                 
             else if (current_submenu == 2) then
                 ! Вкладка "Magia" (Магия)
