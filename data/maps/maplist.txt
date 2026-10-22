@@ -2,7 +2,7 @@
 
 [cairo]
 tileset = assets_game/tilesets/desert.png
-music = assets_game/music/cairo.ogg
+music = assets_game/music/Cairo_Theme.ogg
 layout = layout.bin
 collision = collision.bin
 areas = areas.txt

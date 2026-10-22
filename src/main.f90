@@ -126,6 +126,10 @@ program rts_prototype
     print *, "Тайлсет: ", trim(current_config%tileset)
     
     call map_load(trim(layout_path), renderer, trim(current_config%tileset), trim(collision_path), trim(areas_path))
+    
+    if (len_trim(current_config%music) > 0) then
+        call audio_play_music(trim(current_config%music), -1) ! -1 значит "играть бесконечно"
+    end if
 
     call player_init(19, 21) 
     call camera_init(px, py)
