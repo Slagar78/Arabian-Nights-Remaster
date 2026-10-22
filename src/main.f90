@@ -9,6 +9,7 @@ program rts_prototype
     use :: game_player
     use :: timer
     use :: game_intro
+    use :: ui_status
     implicit none
 
     type :: map_settings
@@ -326,43 +327,25 @@ program rts_prototype
             end block
         end if
 
-        if (current_submenu > 0 .and. menu_panel_tex%loaded) then
-            call sdl_set_render_draw_blend_mode(renderer, SDL_BLENDMODE_BLEND)
-            
-            block
-                type(sdl_rect), target :: p_src, p_dst, frame_dst, portrait_dst
+        ! --- ОТРИСОВКА ПОДМЕНЮ ---
+        if (current_submenu > 0) then
+            if (current_submenu == 1) then
+                ! Вкладка "Stato" (Статус)
+                call draw_character_status(renderer, portrait_tex, menu_panel_tex)
                 
-                call sdl_set_render_draw_color(renderer, uint8(0), uint8(0), uint8(0), uint8(100))
-                block
-                    type(sdl_rect) :: ov
-                    ov%x=0; ov%y=0; ov%w=1280; ov%h=720
-                    call sdl_render_fill_rect(renderer, ov)
-                end block
+            else if (current_submenu == 2) then
+                ! Вкладка "Magia" (Магия)
+                ! Пока пусто, сюда будем вызывать draw_magic_menu
                 
-                p_src%x = 0; p_src%y = 0; p_src%w = 960; p_src%h = 640
-                p_dst%x = 160; p_dst%y = 40; p_dst%w = 960; p_dst%h = 640
-                call texture_draw_part(menu_panel_tex, renderer, p_src, p_dst)
+            else if (current_submenu == 3) then
+                ! Вкладка "Oggetti" (Предметы)
+                ! Пока пусто, сюда будем вызывать draw_items_menu
                 
-                ! 1. Координаты рамки
-                p_src%x = 0; p_src%y = 0; p_src%w = 200; p_src%h = 256
-                frame_dst%x = 350; frame_dst%y = 226; frame_dst%w = 200; frame_dst%h = 256
+            else if (current_submenu == 4) then
+                ! Вкладка "Carte" (Карты Джиннов)
+                ! Пока пусто, сюда будем вызывать draw_cards_menu
                 
-                ! 2. Координаты портрета (сдвиг по X на 4 пикселя: 350 + 4 = 354)
-                p_src%x = 0; p_src%y = 0; p_src%w = 192; p_src%h = 256
-                portrait_dst%x = 354; portrait_dst%y = 226; portrait_dst%w = 192; portrait_dst%h = 256
-                
-                ! 3. Рисуем портрет
-                if (portrait_tex%loaded) then
-                    call texture_draw_part(portrait_tex, renderer, p_src, portrait_dst)
-                end if
-                
-                ! 4. Рисуем рамку ПОВЕРХ портрета
-                if (portrait_frame_tex%loaded) then
-                    p_src%x = 0; p_src%y = 0; p_src%w = 200; p_src%h = 256
-                    call texture_draw_part(portrait_frame_tex, renderer, p_src, frame_dst)
-                end if
-
-            end block
+            end if
         end if
 
         ! Рисуем интерфейс ТОЛЬКО если меню паузы закрыто

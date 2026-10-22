@@ -1,6 +1,6 @@
 Arabian_Nights/
 │
-├── Makefile
+├── Makefile               <-- Обновлен: добавлены правила для src/ui/ и флаги -J.
 ├── UI_GUIDE.txt
 ├── УСТАНОВКА.txt
 ├── схема.txt
@@ -24,34 +24,37 @@ Arabian_Nights/
 │   ├── sdl_bind.f90       <-- Привязки к C (SDL2, SDL2_mixer)
 │   ├── textures.f90       <-- Загрузка картинок, 9-slice
 │   ├── timer.f90          <-- Фиксированный шаг (60 FPS)
-│   └── audio.f90          <-- НОВОЕ! Работа с музыкой и звуками
+│   └── audio.f90          <-- Работа с музыкой и звуками
 │
 ├── src/                   <-- КОД ИГРЫ (Геймплей)
-│   ├── ui.f90             <-- Кнопки, тумблеры, текст
+│   ├── main.f90           <-- Главный игровой цикл и загрузка карт
 │   ├── map.f90            <-- Рендер карты, коллизии
-│   ├── camera.f90         <-- Камера
+│   ├── camera.f90         <-- Камера (с флагом cam_arrived)
 │   ├── player.f90         <-- Шукран, движение, анимации, тени
-│   ├── intro.f90          <-- НОВОЕ! PS1-заставка
-│   └── main.f90           <-- Главный игровой цикл
+│   ├── intro.f90          <-- PS1-заставка
+│   ├── ui.f90             <-- Базовый UI: кнопки, тумблеры, ТЕКСТ (2 шрифта: 20px и 16px)
+│   │
+│   └── ui/                <-- НОВАЯ ПАПКА: Отдельные модули меню
+│       └── status.f90     <-- Экран характеристик (Stato): портрет, статы, инвентарь
 │
 ├── assets/                <-- ТОЛЬКО ДЛЯ СТАНДАРТНОГО GUI
 │   ├── button.png         <-- Кнопки 
 │   ├── track.png          <-- Дорожка тумблера
 │   ├── thumb.png          <-- Кружок тумблера
-│   └── fonts/             <-- .ttf шрифт
+│   └── fonts/             <-- Шрифты (cleopatra.ttf)
 │
 ├── assets_game/           <-- АССЕТЫ ДЛЯ ИГРЫ
-│   ├── intro/             <-- НОВАЯ ПАПКА! (Для заставки)
-│   │   ├── diamond.png    <-- Фиолетовый ромб
-│   │   ├── Fortran_text.png <-- Верхний текст
-│   │   ├── text_2.png     <-- Нижний текст
-│   │   ├── fs_logo.png    <-- Логотип FS (3D)
-│   │   └── fs_text.png    <-- Текст Fortran SDL2
+│   ├── intro/             <-- Для заставки
+│   │   ├── diamond.png    
+│   │   ├── Fortran_text.png 
+│   │   ├── text_2.png     
+│   │   ├── fs_logo.png    
+│   │   └── fs_text.png    
 │   │
 │   ├── characters/
 │   │   └── mapsprites/    <-- Спрайты Шукран (down, up, right)
 │   │
-│   ├── portraits/         <-- HD-портреты для диалогов (shukran.png)
+│   ├── portraits/         <-- HD-портреты для диалогов и меню (shukran.png)
 │   │
 │   ├── tilesets/          <-- ТАЙЛСЕТЫ ЗЕМЛИ (desert.png, pavement.png, dungeon.png)
 │   │
@@ -62,9 +65,9 @@ Arabian_Nights/
 │   │   └── bush.png       <-- Кусты 64x64
 │   │
 │   ├── music/             <-- МУЗЫКА
-│   │   ├── intro.ogg      <-- Музыка для заставки
-│   │   ├── cairo.ogg      <-- Музыка города
-│   │   └── dungeon.ogg    <-- Музыка подземелья
+│   │   ├── intro.ogg      
+│   │   ├── cairo.ogg      
+│   │   └── dungeon.ogg    
 │   │
 │   └── menu/              <-- ВСЁ ДЛЯ ИГРОВОГО МЕНЮ
 │       ├── menu_panel.png <-- Пергамент 960x640
