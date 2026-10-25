@@ -45,7 +45,12 @@ program rts_prototype
     logical :: pending_menu_request = .false.
     integer :: menu_selected = 0 
     integer :: current_submenu = 0 
-    integer :: menu_delay = 0
+    ! Ждём РЕАЛЬНОЙ остановки камеры (cam_x/cam_y не меняются),
+    ! а не флага cam_arrived — он true даже когда карта скроллится
+    ! вместе с игроком у края экрана.
+    integer :: menu_still_frames = 0
+    integer :: menu_last_cam_x = -99999
+    integer :: menu_last_cam_y = -99999
     
     integer :: status_y = 720      ! Начальное положение меню (за нижним краем экрана)
     integer :: status_state = 0    ! Состояние: 0=скрыто, 1=выезжает, 2=открыто, 3=уезжает
@@ -190,13 +195,10 @@ program rts_prototype
             else
                 if ((keys(5) /= 0 .and. prev_keys(5) == 0) .or. (keys(8) /= 0 .and. prev_keys(8) == 0)) then
                     if (.not. menu_open .and. current_submenu == 0 .and. .not. pause_menu_open) then
-                        if (moving) then
-                            ! Если Шукран идет, запоминаем запрос и ждем остановки
-                            pending_menu_request = .true.
-                        else
-                            ! Если стоит на месте, открываем сразу
-                            menu_open = .true.
-                        end if
+                        pending_menu_request = .true.
+                        menu_still_frames = 0
+                        menu_last_cam_x = -99999
+                        menu_last_cam_y = -99999
                     else if (menu_open) then
                         if (menu_selected == 0) then
                             current_submenu = 1 
@@ -253,27 +255,33 @@ program rts_prototype
                     call player_update(keys)
                 end if
                 
-                ! (prev_cam_x и prev_cam_y можно удалить из объявлений в начале main)
-
+                ! Обычная камера (логика deadzone как была).
                 if (moving) then
                     call camera_update(px, py, direction)
                 else
                     call camera_update(px, py, 0)
                 end if
 
-                ! --- БЛОК: Отложенное открытие меню ---
+                ! Меню только когда: Шукран стоит на тайле И камера
+                ! реально не двигалась несколько кадров (скролл карты закончен).
                 if (pending_menu_request) then
-                    ! Ждём, пока игрок остановится И камера полностью доедет
-                    if (.not. moving .and. cam_arrived) then
-                        menu_delay = menu_delay + 1
-                        if (menu_delay >= 3) then
+                    if (.not. moving .and. target_tile_x == -1) then
+                        if (cam_x == menu_last_cam_x .and. cam_y == menu_last_cam_y) then
+                            menu_still_frames = menu_still_frames + 1
+                        else
+                            menu_still_frames = 0
+                        end if
+                        ! ~8 кадров @ 60fps — камера точно стоит
+                        if (menu_still_frames >= 8) then
                             pending_menu_request = .false.
-                            menu_delay = 0
+                            menu_still_frames = 0
                             menu_open = .true.
                         end if
                     else
-                        menu_delay = 0
+                        menu_still_frames = 0
                     end if
+                    menu_last_cam_x = cam_x
+                    menu_last_cam_y = cam_y
                 end if
             end if
             

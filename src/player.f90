@@ -110,6 +110,10 @@ contains
             target_tile_y = new_y
             moving = .true.
             pixel_offset = 0
+        else
+            ! Нет продолжения шага (отпустили клавиши / ждём меню)
+            moving = .false.
+            anim_frame = 0
         end if
     end subroutine
 
