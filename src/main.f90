@@ -58,6 +58,10 @@ program rts_prototype
     logical :: flipping = .false.
     integer :: flip_timer = 0
     real :: flip_phase = 0.0
+
+    ! ПЕРЕМЕННЫЕ ДЛЯ ПУЛЬСАЦИИ
+    integer :: pulse_timer = 0
+    integer :: pulse_alpha = 255
     
     character(len=20) :: menu_labels(0:3)
     
@@ -159,7 +163,11 @@ program rts_prototype
         end do
         
         if (timer_update()) then
-            
+            ! --- ОБНОВЛЕНИЕ ПУЛЬСАЦИИ ---
+            pulse_timer = pulse_timer + 1
+            ! Синусоида с частотой ~0.1 рад/кадр (цикл мигания ~1 секунда при 60 FPS)
+             ! Рамка будет менять прозрачность от 155 (полупрозрачная) до 255 (яркая)
+            pulse_alpha = 205 + int(50.0 * sin(real(pulse_timer) * 0.2))          
             ! --- АНИМАЦИЯ ВЫЕЗДА/УЕЗДА МЕНЮ СТАТУСА ---
             if (status_state == 1) then
                 status_y = status_y - 80    ! Скорость выезда (80 пикс/кадр - очень быстро)
@@ -359,12 +367,27 @@ program rts_prototype
                     end if
                     
                     if (i == menu_selected .and. .not. flipping) then
-                        call sdl_set_render_draw_color(renderer, uint8(255), uint8(215), 0_c_int8_t, 255_c_int8_t)
-                        ! 6. Увеличиваем желтую рамку под размер 108 (54 вместо 34)
-                        call sdl_render_draw_line(renderer, px, py - 54, px + 54, py)
-                        call sdl_render_draw_line(renderer, px + 54, py, px, py + 54)
-                        call sdl_render_draw_line(renderer, px, py + 54, px - 54, py)
-                        call sdl_render_draw_line(renderer, px - 54, py, px, py - 54)
+                        ! 1. Розовый цвет (255, 20, 147) + пульсация
+                        call sdl_set_render_draw_color(renderer, uint8(255), uint8(20), uint8(147), uint8(pulse_alpha))
+                        
+                        ! 2. Рисуем рамку в 3 слоя, чтобы сделать её жирной
+                        ! Слой 1: Оригинальный размер (54)
+                        call sdl_render_draw_line(renderer, px,      py - 54, px + 54, py)
+                        call sdl_render_draw_line(renderer, px + 54, py,      px,      py + 54)
+                        call sdl_render_draw_line(renderer, px,      py + 54, px - 54, py)
+                        call sdl_render_draw_line(renderer, px - 54, py,      px,      py - 54)
+                        
+                        ! Слой 2: Чуть больше (55) - внешний край
+                        call sdl_render_draw_line(renderer, px,      py - 55, px + 55, py)
+                        call sdl_render_draw_line(renderer, px + 55, py,      px,      py + 55)
+                        call sdl_render_draw_line(renderer, px,      py + 55, px - 55, py)
+                        call sdl_render_draw_line(renderer, px - 55, py,      px,      py - 55)
+                        
+                        ! Слой 3: Чуть меньше (53) - внутренний край
+                        call sdl_render_draw_line(renderer, px,      py - 53, px + 53, py)
+                        call sdl_render_draw_line(renderer, px + 53, py,      px,      py + 53)
+                        call sdl_render_draw_line(renderer, px,      py + 53, px - 53, py)
+                        call sdl_render_draw_line(renderer, px - 53, py,      px,      py - 53)
                     end if
                 end do
                 
@@ -380,7 +403,7 @@ program rts_prototype
                 
             else if (current_submenu == 2) then
                 ! Вкладка "Magia" (Магия)
-                call draw_magic_menu(renderer, mystic_card_tex, status_y)
+                call draw_magic_menu(renderer, mystic_card_tex, portrait_tex, portrait_frame_tex, status_y)
                 
             else if (current_submenu == 3) then
                 ! Вкладка "Oggetti" (Предметы)
