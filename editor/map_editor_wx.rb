@@ -2,6 +2,7 @@ require 'wx'
 
 module MapEditor
   TILE_SIZE = 64
+  PALETTE_TILE_SIZE = 32 # ★ Теперь 32 пикселя, как ты и просил ★
   COLS = 38
   ROWS = 42
 
@@ -17,11 +18,15 @@ module MapEditor
 
       @map_grid = Array.new(ROWS) { Array.new(COLS, 0) }
       @collision_grid = Array.new(ROWS) { Array.new(COLS, 1) }
-      @tile_bitmaps = [] # Массив с готовыми квадратиками 64х64
+      @tile_bitmaps = [] 
       @mode = :tiles
       @selected_tile = 1
       @drawing = false
       @draw_action = 1
+
+      # КЭШ-БИТМАП ДЛЯ ВСЕЙ КАРТЫ
+      @cache_bitmap = Wx::Bitmap.new(COLS * TILE_SIZE, ROWS * TILE_SIZE, 32)
+      rebuild_full_cache
 
       evt_paint { on_paint }
       evt_erase_background { }
@@ -40,13 +45,39 @@ module MapEditor
       end
     end
 
-    # Смещение скролла в пикселях.
     def scroll_offset
       pt = get_view_start_pixels
       [pt.x, pt.y]
     end
 
-    # При загрузке тайлсета мы сразу режем его на отдельные картинки
+    def rebuild_full_cache
+      Wx::MemoryDC.draw_on(@cache_bitmap) do |dc|
+        dc.set_brush(Wx::Brush.new(Wx::Colour.new(34, 34, 34)))
+        dc.set_pen(Wx::TRANSPARENT_PEN)
+        dc.draw_rectangle(0, 0, COLS * TILE_SIZE, ROWS * TILE_SIZE)
+
+        ROWS.times do |r|
+          COLS.times do |c|
+            draw_single_tile_to_dc(dc, r, c)
+          end
+        end
+      end
+    end
+
+    def draw_single_tile_to_dc(dc, r, c)
+      x = c * TILE_SIZE
+      y = r * TILE_SIZE
+      tile_id = @map_grid[r][c]
+
+      dc.set_brush(Wx::Brush.new(Wx::Colour.new(34, 34, 34)))
+      dc.set_pen(Wx::TRANSPARENT_PEN)
+      dc.draw_rectangle(x, y, TILE_SIZE, TILE_SIZE)
+
+      if tile_id > 0 && @tile_bitmaps[tile_id - 1]
+        dc.draw_bitmap(@tile_bitmaps[tile_id - 1], x, y, true)
+      end
+    end
+
     def load_tileset_image(path)
       image = Wx::Image.new(path, Wx::BitmapType::BITMAP_TYPE_ANY)
       return false unless image.ok?
@@ -61,6 +92,8 @@ module MapEditor
           @tile_bitmaps << Wx::Bitmap.new(sub)
         end
       end
+      
+      rebuild_full_cache
       refresh
       true
     end
@@ -75,8 +108,6 @@ module MapEditor
     def do_draw(evt)
       sx, sy = scroll_offset
 
-      # evt.get_x/get_y - "физические" координаты окна,
-      # переводим их в координаты карты (виртуальные)
       x = evt.get_x + sx
       y = evt.get_y + sy
       c = x / TILE_SIZE
@@ -88,7 +119,11 @@ module MapEditor
         new_tile = @draw_action == 1 ? @selected_tile : 0
         if @map_grid[r][c] != new_tile
           @map_grid[r][c] = new_tile
-          # refresh_rect принимает Wx::Rect, и в КЛИЕНТСКИХ координатах
+          
+          Wx::MemoryDC.draw_on(@cache_bitmap) do |dc|
+            draw_single_tile_to_dc(dc, r, c)
+          end
+
           refresh_rect(Wx::Rect.new(c * TILE_SIZE - sx, r * TILE_SIZE - sy,
                                     TILE_SIZE, TILE_SIZE))
         end
@@ -105,22 +140,13 @@ module MapEditor
     def on_paint
       paint_buffered do |dc|
         prepare_dc(dc)
+        dc.draw_bitmap(@cache_bitmap, 0, 0, false)
 
         ROWS.times do |r|
           COLS.times do |c|
-            x = c * TILE_SIZE
-            y = r * TILE_SIZE
-            tile_id = @map_grid[r][c]
-
-            if tile_id > 0 && @tile_bitmaps[tile_id - 1]
-              dc.draw_bitmap(@tile_bitmaps[tile_id - 1], x, y, true)
-            else
-              dc.set_brush(Wx::Brush.new(Wx::Colour.new(34, 34, 34)))
-              dc.set_pen(Wx::TRANSPARENT_PEN)
-              dc.draw_rectangle(x, y, TILE_SIZE, TILE_SIZE)
-            end
-
             if @collision_grid[r][c] == -1
+              x = c * TILE_SIZE
+              y = r * TILE_SIZE
               dc.set_brush(Wx::Brush.new(Wx::Colour.new(255, 0, 0, 76)))
               dc.set_pen(Wx::TRANSPARENT_PEN)
               dc.draw_rectangle(x, y, TILE_SIZE, TILE_SIZE)
@@ -152,17 +178,23 @@ module MapEditor
       evt_left_down { |evt| on_click(evt) }
     end
 
-    # Смещение скролла в пикселях (тот же фикс, что и в MapCanvas)
     def scroll_offset
       pt = get_view_start_pixels
       [pt.x, pt.y]
     end
 
     def set_tileset(bitmap)
-      @tileset_bitmap = bitmap
-      w = (bitmap.width / TILE_SIZE) * TILE_SIZE
-      h = (bitmap.height / TILE_SIZE) * TILE_SIZE
-      set_virtual_size(Wx::Size.new(w, h))
+      img = bitmap.convert_to_image
+      w = (img.width.to_f * PALETTE_TILE_SIZE / TILE_SIZE).round
+      h = (img.height.to_f * PALETTE_TILE_SIZE / TILE_SIZE).round
+      scaled_img = img.scale(w, h)
+      @tileset_bitmap = Wx::Bitmap.new(scaled_img)
+      
+      # Устанавливаем виртуальный размер, но не меньше видимой области
+      cw, ch = get_client_size
+      vw = [w, cw].max
+      vh = [h, ch].max
+      set_virtual_size(Wx::Size.new(vw, vh))
       refresh
     end
 
@@ -171,10 +203,12 @@ module MapEditor
       sx, sy = scroll_offset
       x = evt.get_x + sx
       y = evt.get_y + sy
-      c = x / TILE_SIZE
-      r = y / TILE_SIZE
-      cols = @tileset_bitmap.width / TILE_SIZE
-      rows = @tileset_bitmap.height / TILE_SIZE
+      
+      c = x / PALETTE_TILE_SIZE
+      r = y / PALETTE_TILE_SIZE
+      
+      cols = @tileset_bitmap.width / PALETTE_TILE_SIZE
+      rows = @tileset_bitmap.height / PALETTE_TILE_SIZE
 
       if c >= 0 && c < cols && r >= 0 && r < rows
         @selected_tile = r * cols + c + 1
@@ -185,25 +219,33 @@ module MapEditor
 
     def on_paint
       paint_buffered do |dc|
+        # ★ ЗАЛИВАЕМ ВЕСЬ ФОН ТЕМНЫМ ЦВЕТОМ (чтобы не было серых дыр) ★
+        cw, ch = get_client_size
+        dc.set_brush(Wx::Brush.new(Wx::Colour.new(42, 42, 42)))
+        dc.set_pen(Wx::TRANSPARENT_PEN)
+        dc.draw_rectangle(0, 0, cw, ch)
+
         prepare_dc(dc)
         next unless @tileset_bitmap
 
         dc.draw_bitmap(@tileset_bitmap, 0, 0, false)
 
+        # Рисуем сетку с учетом 32px
         dc.set_pen(Wx::Pen.new(Wx::Colour.new(255, 255, 255, 51), 1))
         w = @tileset_bitmap.width
         h = @tileset_bitmap.height
-        (0..w).step(TILE_SIZE).each { |x| dc.draw_line(x, 0, x, h) }
-        (0..h).step(TILE_SIZE).each { |y| dc.draw_line(0, y, w, y) }
+        (0..w).step(PALETTE_TILE_SIZE).each { |x| dc.draw_line(x, 0, x, h) }
+        (0..h).step(PALETTE_TILE_SIZE).each { |y| dc.draw_line(0, y, w, y) }
 
         sel_idx = @selected_tile - 1
         if sel_idx >= 0
-          cols = w / TILE_SIZE
-          sx = (sel_idx % cols) * TILE_SIZE
-          sy = (sel_idx / cols) * TILE_SIZE
+          cols = w / PALETTE_TILE_SIZE
+          sx = (sel_idx % cols) * PALETTE_TILE_SIZE
+          sy = (sel_idx / cols) * PALETTE_TILE_SIZE
+          
           dc.set_pen(Wx::Pen.new(Wx::Colour.new(76, 175, 80), 4))
           dc.set_brush(Wx::TRANSPARENT_BRUSH)
-          dc.draw_rectangle(sx, sy, TILE_SIZE, TILE_SIZE)
+          dc.draw_rectangle(sx, sy, PALETTE_TILE_SIZE, PALETTE_TILE_SIZE)
         end
       end
     end
@@ -242,7 +284,8 @@ module MapEditor
       pal_sizer.add(@palette_canvas, 1, Wx::EXPAND | Wx::ALL, 5)
       palette_panel.set_sizer(pal_sizer)
 
-      @splitter.split_vertically(@map_canvas, palette_panel, 900)
+      # ★ СДВИГАЕМ СПЛИТТЕР ЛЕВЕЕ (850), ЧТОБЫ ПАНЕЛИ БЫЛО БОЛЬШЕ МЕСТА ★
+      @splitter.split_vertically(@map_canvas, palette_panel, 850)
 
       @btn_load_layout.evt_button(Wx::ID_ANY) { load_layout }
       @btn_load_tileset.evt_button(Wx::ID_ANY) { load_tileset }
@@ -298,7 +341,6 @@ module MapEditor
       end
     end
 
-    # ИСПРАВЛЕНО: "../data/maps" вместо "../../data/maps"
     def load_layout
       default_dir = File.expand_path("../data/maps", __dir__)
       default_dir = Dir.pwd unless Dir.exist?(default_dir)
@@ -318,7 +360,10 @@ module MapEditor
             end
           end
           @status.set_label('layout.bin загружен!')
+          
+          @map_canvas.rebuild_full_cache
           @map_canvas.refresh
+          
         else
           Wx.message_box("Неверный размер файла! Ожидалось #{ROWS * COLS * 2} байт.", "Ошибка", Wx::OK | Wx::ICON_ERROR, self)
         end
@@ -327,7 +372,6 @@ module MapEditor
       end
     end
 
-    # ИСПРАВЛЕНО: "../data/maps"
     def load_collision
       default_dir = File.expand_path("../data/maps", __dir__)
       default_dir = Dir.pwd unless Dir.exist?(default_dir)
@@ -356,7 +400,6 @@ module MapEditor
       end
     end
 
-    # ИСПРАВЛЕНО: "../assets_game/tilesets"
     def load_tileset
       default_dir = File.expand_path("../assets_game/tilesets", __dir__)
       default_dir = Dir.pwd unless Dir.exist?(default_dir)
@@ -376,7 +419,6 @@ module MapEditor
       end
     end
 
-    # ИСПРАВЛЕНО: "../data/maps"
     def save_layout
       default_dir = File.expand_path("../data/maps", __dir__)
       default_dir = Dir.pwd unless Dir.exist?(default_dir)
@@ -390,7 +432,6 @@ module MapEditor
       @status.set_label('layout.bin сохранен!')
     end
 
-    # ИСПРАВЛЕНО: "../data/maps"
     def save_collision
       default_dir = File.expand_path("../data/maps", __dir__)
       default_dir = Dir.pwd unless Dir.exist?(default_dir)
