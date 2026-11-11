@@ -1,2 +1,2 @@
-# Arabian-Nights-Remaster
-Ремастер SNES-игры Arabian Nights на Fortran + SDL2
+# Shukran_Card_Guardian
+Shukran_Card_Guardian на Fortran + SDL2
