@@ -11,12 +11,9 @@ module game_player
     integer :: target_tile_x = -1, target_tile_y = -1
     integer :: pixel_offset = 0
     
-    integer :: direction = 1
-    integer :: just_turned = 0
-    
+    integer :: direction = 1    
     integer :: anim_frame = 0
-    integer :: anim_timer = 0
-    
+    integer :: anim_timer = 0    
     integer :: idle_frame = 0
     integer :: idle_timer = 0
     
@@ -123,43 +120,40 @@ contains
         new_dir = -1
         dx = 0; dy = 0
 
+        ! Считываем нажатие
         if (keys(80) /= 0) then; new_dir = 3; dx = 1; dy = 0; end if 
         if (keys(81) /= 0) then; new_dir = 4; dx = -1; dy = 0; end if 
         if (keys(82) /= 0) then; new_dir = 1; dx = 0; dy = 1; end if 
         if (keys(83) /= 0) then; new_dir = 2; dx = 0; dy = -1; end if 
 
+        ! Если ничего не нажато - стоим
         if (new_dir == -1) then
             moving = .false.
-            anim_frame = 0
-            just_turned = 0
             return
         end if
 
         if (direction /= new_dir) then
             direction = new_dir
-            just_turned = 1
-            anim_frame = 0
-            return
-        end if
-
-        if (just_turned == 1) then
-            just_turned = 0
+            moving = .false.
             return
         end if
 
         new_x = tile_x + dx
         new_y = tile_y + dy
 
+        ! Проверка выхода за карту
         if (new_x < 0 .or. new_x >= MAP_COLS .or. new_y < 0 .or. new_y >= MAP_ROWS) then
             moving = .false.
             return
         end if
 
+        ! Проверка на стену (если стена - просто стоим, но уже развернутые)
         if (is_solid(new_x + 1, new_y + 1)) then
             moving = .false.
             return
         end if
 
+        ! Если всё чисто - начинаем движение
         target_tile_x = new_x
         target_tile_y = new_y
         moving = .true.

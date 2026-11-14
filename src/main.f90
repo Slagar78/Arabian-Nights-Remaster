@@ -4,6 +4,7 @@ program rts_prototype
     use :: audio
     use :: textures
     use :: ui
+    use :: controls
     use :: game_map
     use :: game_camera
     use :: game_player
@@ -192,7 +193,7 @@ program rts_prototype
             end if
 
             ! --- Обработка нажатий (Пауза, Меню) ---
-            if (keys(42) /= 0 .and. prev_keys(42) == 0) then
+            if (keys(KEY_ESC) /= 0 .and. prev_keys(KEY_ESC) == 0) then
                 pause_menu_open = .not. pause_menu_open
                 if (pause_menu_open) then
                     menu_open = .false.
@@ -201,12 +202,12 @@ program rts_prototype
             end if
 
             if (current_submenu > 0) then
-                if (keys(23) /= 0 .and. prev_keys(23) == 0) then
+                if (keys(KEY_S) /= 0 .and. prev_keys(KEY_S) == 0) then
                     if (status_state == 2) status_state = 3
                 end if
             else
                 ! Открытие радиального меню (A/D)
-                if ((keys(5) /= 0 .and. prev_keys(5) == 0) .or. (keys(8) /= 0 .and. prev_keys(8) == 0)) then
+                if ((keys(KEY_A) /= 0 .and. prev_keys(KEY_A) == 0) .or. (keys(KEY_D) /= 0 .and. prev_keys(KEY_D) == 0)) then
                     if (.not. menu_open .and. current_submenu == 0 .and. .not. pause_menu_open) then
                         pending_menu_request = .true.
                         menu_still_frames = 0
@@ -228,17 +229,17 @@ program rts_prototype
 
                 ! Управление в радиальном меню (Стрелки)
                 if (menu_open) then
-                    if (keys(83) /= 0 .and. prev_keys(83) == 0 .and. menu_selected /= 0) then
+                    if (keys(KEY_UP) /= 0 .and. prev_keys(KEY_UP) == 0 .and. menu_selected /= 0) then
                         menu_selected = 0; flipping = .true.; flip_timer = 0
-                    else if (keys(81) /= 0 .and. prev_keys(81) == 0 .and. menu_selected /= 1) then
+                    else if (keys(KEY_LEFT) /= 0 .and. prev_keys(KEY_LEFT) == 0 .and. menu_selected /= 1) then
                         menu_selected = 1; flipping = .true.; flip_timer = 0
-                    else if (keys(80) /= 0 .and. prev_keys(80) == 0 .and. menu_selected /= 2) then
+                    else if (keys(KEY_RIGHT) /= 0 .and. prev_keys(KEY_RIGHT) == 0 .and. menu_selected /= 2) then
                         menu_selected = 2; flipping = .true.; flip_timer = 0
-                    else if (keys(82) /= 0 .and. prev_keys(82) == 0 .and. menu_selected /= 3) then
+                    else if (keys(KEY_DOWN) /= 0 .and. prev_keys(KEY_DOWN) == 0 .and. menu_selected /= 3) then
                         menu_selected = 3; flipping = .true.; flip_timer = 0
                     end if
                     
-                    if (keys(23) /= 0 .and. prev_keys(23) == 0) then
+                    if (keys(KEY_S) /= 0 .and. prev_keys(KEY_S) == 0) then
                         menu_open = .false.
                     end if
 

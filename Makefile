@@ -3,8 +3,9 @@ FCFLAGS = -O2 -Wall -fno-range-check -J. -I. -Ilib -Isrc -Isrc/ui
 INC     = -IC:/msys64/ucrt64/include/SDL2
 LIB     = -LC:/msys64/ucrt64/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
+# ДОБАВИЛИ src/controls.o
 OBJ = lib/sdl_bind.o lib/textures.o lib/timer.o lib/audio.o \
-      src/ui.o src/map.o src/camera.o src/player.o src/intro.o \
+      src/controls.o src/ui.o src/map.o src/camera.o src/player.o src/intro.o \
       src/ui/status.o src/ui/magia.o src/main.o
 
 app.exe: $(OBJ)
@@ -22,7 +23,8 @@ src/ui/%.o: src/ui/%.f90
 # ЖЕСТКИЕ ЗАВИСИМОСТИ
 src/ui/status.o: src/ui.o
 src/ui/magia.o: src/ui.o
-src/main.o: src/ui/status.o src/ui/magia.o src/ui.o src/map.o src/camera.o src/player.o src/intro.o
+# main зависит от ВСЕХ модулей, включая controls
+src/main.o: src/ui/status.o src/ui/magia.o src/ui.o src/controls.o src/map.o src/camera.o src/player.o src/intro.o
 
 run: app.exe
 	@echo "Очистка .o файлов (мусор)..."
