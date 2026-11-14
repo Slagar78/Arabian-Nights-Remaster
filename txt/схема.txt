@@ -1,6 +1,6 @@
 Arabian_Nights/
 │
-├── Makefile               <-- Обновлен: добавлены правила для всех файлов в src/ui/
+├── Makefile               <-- Обновлен: собирает, чистит .o файлы и запускает игру
 ├── UI_GUIDE.txt
 ├── УСТАНОВКА.txt
 ├── схема.txt
@@ -27,7 +27,7 @@ Arabian_Nights/
 │   └── audio.f90          <-- Работа с музыкой и звуками
 │
 ├── src/                   <-- КОД ИГРЫ (Геймплей)
-│   ├── main.f90           <-- Главный игровой цикл, обработка меню, вылет карт
+│   ├── main.f90           <-- Главный игровой цикл, чтение конфигов, меню
 │   ├── map.f90            <-- Рендер карты, коллизии
 │   ├── camera.f90         <-- Камера (с флагом cam_arrived)
 │   ├── player.f90         <-- Шукран, движение, анимации, тени
@@ -47,10 +47,17 @@ Arabian_Nights/
 ├── assets_game/           <-- АССЕТЫ ДЛЯ ИГРЫ
 │   ├── intro/             <-- Для заставки (логотипы, ромб)
 │   │
-│   ├── characters/
-│   │   └── mapsprites/    <-- Спрайты Шукран (down, up, right)
-│   │
-│   ├── portraits/         <-- HD-портреты (shukran.png)
+│   ├── characters/            <-- ВСЁ ДЛЯ ПЕРСОНАЖЕЙ
+│   │   ├── characters.txt     <-- КОНФИГ (пути к спрайтам и портретам)
+│   │   │
+│   │   ├── mapsprites/        <-- СПРАЙТЫ ХОДЬБЫ
+│   │   │   └── Shukran/       <-- Папка конкретного героя
+│   │   │       ├── Shukran_down.png
+│   │   │       ├── Shukran_up.png
+│   │   │       └── Shukran_right.png
+│   │   │
+│   │   └── portraits/         <-- HD-ПОРТРЕТЫ
+│   │       └── shukran.png
 │   │
 │   ├── tilesets/          <-- ТАЙЛСЕТЫ ЗЕМЛИ (desert.png, pavement.png, dungeon.png)
 │   │
@@ -75,6 +82,7 @@ Arabian_Nights/
 │           ├── crystal_3.png (Зелёный)
 │           └── crystal_4.png (Жёлтый)
 │
-└── editor/                <-- Твои редакторы/утилиты
-    ├── map-creator.html   <-- Создание карты
-    └── map-editor.html    <-- Редактирование коллизий
+└── editor/                <-- редакторы/утилиты (Ruby + wxRuby3)
+    ├── wxruby3/           <-- Библиотека для GUI
+    ├── map_creator_wx.rb  <-- Создание карты
+    └── map_editor_wx.rb   <-- Редактирование коллизий

@@ -3,7 +3,6 @@ FCFLAGS = -O2 -Wall -fno-range-check -J. -I. -Ilib -Isrc -Isrc/ui
 INC     = -IC:/msys64/ucrt64/include/SDL2
 LIB     = -LC:/msys64/ucrt64/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
-# ДОБАВИЛИ src/ui/magia.o
 OBJ = lib/sdl_bind.o lib/textures.o lib/timer.o lib/audio.o \
       src/ui.o src/map.o src/camera.o src/player.o src/intro.o \
       src/ui/status.o src/ui/magia.o src/main.o
@@ -23,10 +22,11 @@ src/ui/%.o: src/ui/%.f90
 # ЖЕСТКИЕ ЗАВИСИМОСТИ
 src/ui/status.o: src/ui.o
 src/ui/magia.o: src/ui.o
-# main зависит от ВСЕХ модулей, включая magia
 src/main.o: src/ui/status.o src/ui/magia.o src/ui.o src/map.o src/camera.o src/player.o src/intro.o
 
 run: app.exe
+	@echo "Очистка .o файлов (мусор)..."
+	rm -f lib/*.o src/*.o src/ui/*.o
 	cp -f /c/msys64/ucrt64/bin/SDL2.dll . 2>/dev/null || true
 	cp -f /c/msys64/ucrt64/bin/SDL2_image.dll . 2>/dev/null || true
 	cp -f /c/msys64/ucrt64/bin/SDL2_ttf.dll . 2>/dev/null || true
